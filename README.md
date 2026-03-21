@@ -82,11 +82,11 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 TODO
 
 ## 相关工作
-**2025届**
+**2025届**  
 [1] https://pd-ch.github.io/blog/2025-07-31-taac-participate-record/
 [2] https://github.com/zcyeee/TAAC
 
-**2026届**
+**2026届**  
 [1] https://github.com/creatorwyx/TAAC2026-CTR-Baseline
 
 ## References
