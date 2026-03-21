@@ -79,7 +79,28 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 第二轮在约10倍更大规模的数据集上评估模型的鲁棒性和大规模建模能力，同时设置严格的推理延迟限制，以鼓励采用GPU高效统一架构。每支决赛团队将获得相当的计算资源，且所有提交必须通过官方环境中的可复现性和规则合规性验证。
 
 ## 我们的工作
-TODO
+当前仓库已提供第一版可训练 baseline，目标是先建立一个围绕统一建模路线的最小实验闭环，而不是过早堆复杂模块。
+
+第一版 baseline 采用候选感知的单模型结构：
+
+1. 将目标 item 特征、用户特征和历史序列统一编码为离散 token 与统计 dense feature。
+2. 将三个序列子块统一映射为历史事件 token 序列。
+3. 用候选 item 表示作为 query，对历史序列做 attention pooling。
+4. 用 candidate、context、history 三类表示及其交互项完成二分类预测。
+
+这还不是最终参赛模型，但已经具备：
+
+1. 样例 parquet 数据读取
+2. 时间切分验证
+3. AUC 评估
+4. 推理延迟基准统计
+5. 后续替换主干模块的基础接口
+
+训练 baseline：
+
+```bash
+.venv/bin/python -m taac2026.train --config configs/baseline.yaml
+```
 
 ## 相关工作
 **2025届**  
