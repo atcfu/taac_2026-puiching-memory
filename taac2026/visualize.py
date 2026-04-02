@@ -26,6 +26,7 @@ def _configure_matplotlib() -> None:
             "axes.labelsize": 10,
             "axes.titlesize": 12,
             "legend.frameon": False,
+            "svg.fonttype": "none",
         }
     )
 
@@ -43,12 +44,33 @@ def _resolve_output_dir(input_path: str | Path, output_dir: str | Path | None) -
     return ensure_dir(Path(input_path).parent / "plots")
 
 
-def _save_figure(figure: plt.Figure, path: str | Path) -> Path:
-    output_path = Path(path)
-    ensure_dir(output_path.parent)
-    figure.savefig(output_path, dpi=180, bbox_inches="tight")
+def _normalize_formats(formats: list[str] | tuple[str, ...] | None) -> tuple[str, ...]:
+    if not formats:
+        return ("png",)
+
+    normalized: list[str] = []
+    for value in formats:
+        format_name = value.strip().lower()
+        if format_name not in {"png", "svg"}:
+            raise ValueError(f"不支持的导出格式: {value}。当前仅支持 png/svg。")
+        if format_name not in normalized:
+            normalized.append(format_name)
+    return tuple(normalized) or ("png",)
+
+
+def _save_figure(figure: plt.Figure, base_path: str | Path, formats: list[str] | tuple[str, ...] | None = None) -> list[Path]:
+    output_base = Path(base_path)
+    if output_base.suffix:
+        output_base = output_base.with_suffix("")
+    ensure_dir(output_base.parent)
+
+    written_paths: list[Path] = []
+    for format_name in _normalize_formats(formats):
+        output_path = output_base.with_suffix(f".{format_name}")
+        figure.savefig(output_path, format=format_name, dpi=180, bbox_inches="tight")
+        written_paths.append(output_path)
     plt.close(figure)
-    return output_path
+    return written_paths
 
 
 def _safe_name(value: str) -> str:
@@ -95,7 +117,11 @@ def _summary_ci_error(records: list[dict[str, Any]], key: str) -> np.ndarray | N
     return np.asarray([lowers, uppers], dtype=np.float64)
 
 
-def plot_batch_report(input_path: str | Path, output_dir: str | Path | None = None) -> list[Path]:
+def plot_batch_report(
+    input_path: str | Path,
+    output_dir: str | Path | None = None,
+    formats: list[str] | tuple[str, ...] | None = None,
+) -> list[Path]:
     payload = _load_json(input_path)
     records = sorted(payload.get("records", []), key=lambda item: float(item.get("auc", 0.0)), reverse=True)
     if not records:
@@ -144,7 +170,7 @@ def plot_batch_report(input_path: str | Path, output_dir: str | Path | None = No
     for axis in axes:
         axis.grid(axis="x", alpha=0.25)
 
-    dashboard_path = _save_figure(figure, output_root / "experiment_dashboard.png")
+    paths = _save_figure(figure, output_root / "experiment_dashboard", formats)
 
     pareto_figure, pareto_axis = plt.subplots(figsize=(10, 8), constrained_layout=True)
     scatter = pareto_axis.scatter(
@@ -164,11 +190,15 @@ def plot_batch_report(input_path: str | Path, output_dir: str | Path | None = No
     colorbar = pareto_figure.colorbar(scatter, ax=pareto_axis)
     colorbar.set_label("PR-AUC")
     pareto_axis.grid(alpha=0.25)
-    pareto_path = _save_figure(pareto_figure, output_root / "experiment_pareto.png")
-    return [dashboard_path, pareto_path]
+    paths.extend(_save_figure(pareto_figure, output_root / "experiment_pareto", formats))
+    return paths
 
 
-def plot_summary(input_path: str | Path, output_dir: str | Path | None = None) -> list[Path]:
+def plot_summary(
+    input_path: str | Path,
+    output_dir: str | Path | None = None,
+    formats: list[str] | tuple[str, ...] | None = None,
+) -> list[Path]:
     payload = _load_json(input_path)
     history = payload.get("history", [])
     if not history:
@@ -202,10 +232,14 @@ def plot_summary(input_path: str | Path, output_dir: str | Path | None = None) -
     for axis in axes:
         axis.grid(alpha=0.25)
 
-    return [_save_figure(figure, output_root / "training_history.png")]
+    return _save_figure(figure, output_root / "training_history", formats)
 
 
-def plot_truncation_sweep(input_path: str | Path, output_dir: str | Path | None = None) -> list[Path]:
+def plot_truncation_sweep(
+    input_path: str | Path,
+    output_dir: str | Path | None = None,
+    formats: list[str] | tuple[str, ...] | None = None,
+) -> list[Path]:
     payload = _load_json(input_path)
     summary = sorted(payload.get("summary", []), key=lambda item: int(item.get("max_seq_len", 0)))
     runs = payload.get("runs", [])
@@ -247,7 +281,7 @@ def plot_truncation_sweep(input_path: str | Path, output_dir: str | Path | None 
     for axis in axes:
         axis.grid(alpha=0.25)
 
-    summary_path = _save_figure(figure, output_root / "truncation_summary.png")
+    paths = _save_figure(figure, output_root / "truncation_summary", formats)
 
     raw_figure, raw_axes = plt.subplots(2, 1, figsize=(11, 9), constrained_layout=True)
     for metric_name, axis, color in [
@@ -267,11 +301,15 @@ def plot_truncation_sweep(input_path: str | Path, output_dir: str | Path | None 
     raw_axes[0].set_ylabel("AUC")
     raw_axes[1].set_title("Per-seed PR-AUC")
     raw_axes[1].set_ylabel("PR-AUC")
-    raw_path = _save_figure(raw_figure, output_root / "truncation_by_seed.png")
-    return [summary_path, raw_path]
+    paths.extend(_save_figure(raw_figure, output_root / "truncation_by_seed", formats))
+    return paths
 
 
-def plot_dataset_profile(input_path: str | Path, output_dir: str | Path | None = None) -> list[Path]:
+def plot_dataset_profile(
+    input_path: str | Path,
+    output_dir: str | Path | None = None,
+    formats: list[str] | tuple[str, ...] | None = None,
+) -> list[Path]:
     payload = _load_json(input_path)
     output_root = _resolve_output_dir(input_path, output_dir)
 
@@ -328,7 +366,7 @@ def plot_dataset_profile(input_path: str | Path, output_dir: str | Path | None =
     for axis in axes.flat:
         axis.grid(alpha=0.25)
 
-    overview_path = _save_figure(figure, output_root / "dataset_profile_overview.png")
+    paths = _save_figure(figure, output_root / "dataset_profile_overview", formats)
 
     hour_counts = payload["temporal_drift"]["hour_of_day_counts"]
     hour_labels = sorted(int(hour) for hour in hour_counts.keys())
@@ -338,11 +376,15 @@ def plot_dataset_profile(input_path: str | Path, output_dir: str | Path | None =
     hourly_axis.set_xlabel("Hour")
     hourly_axis.set_ylabel("Rows")
     hourly_axis.grid(axis="y", alpha=0.25)
-    hourly_path = _save_figure(hourly_figure, output_root / "dataset_hourly_activity.png")
-    return [overview_path, hourly_path]
+    paths.extend(_save_figure(hourly_figure, output_root / "dataset_hourly_activity", formats))
+    return paths
 
 
-def plot_evaluation(input_path: str | Path, output_dir: str | Path | None = None) -> list[Path]:
+def plot_evaluation(
+    input_path: str | Path,
+    output_dir: str | Path | None = None,
+    formats: list[str] | tuple[str, ...] | None = None,
+) -> list[Path]:
     payload = _load_json(input_path)
     metrics = payload.get("metrics", {})
     bucket_metrics = metrics.get("bucket_metrics", {})
@@ -375,7 +417,7 @@ def plot_evaluation(input_path: str | Path, output_dir: str | Path | None = None
     for axis in global_axes:
         axis.grid(axis="y", alpha=0.25)
 
-    paths = [_save_figure(global_figure, output_root / "evaluation_overview.png")]
+    paths = _save_figure(global_figure, output_root / "evaluation_overview", formats)
 
     for bucket_name, bucket_rows in bucket_metrics.items():
         if not bucket_rows:
@@ -406,8 +448,19 @@ def plot_evaluation(input_path: str | Path, output_dir: str | Path | None = None
         for axis in axes:
             axis.grid(alpha=0.25)
 
-        paths.append(_save_figure(figure, output_root / f"evaluation_bucket_{_safe_name(bucket_name)}.png"))
+        paths.extend(_save_figure(figure, output_root / f"evaluation_bucket_{_safe_name(bucket_name)}", formats))
     return paths
+
+
+def _add_common_arguments(parser: argparse.ArgumentParser, default_input: str) -> None:
+    parser.add_argument("--input", type=str, default=default_input, help="输入 JSON 路径。")
+    parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    parser.add_argument(
+        "--formats",
+        nargs="+",
+        default=["png"],
+        help="导出格式列表，支持 png 和 svg，例如 --formats png svg。",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -415,39 +468,35 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     evaluation_parser = subparsers.add_parser("evaluation", help="从 evaluation.json 生成全局指标与分桶图。")
-    evaluation_parser.add_argument("--input", type=str, default="outputs/creatorwyx_din_adapter/evaluation.json", help="evaluation.json 路径。")
-    evaluation_parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    _add_common_arguments(evaluation_parser, "outputs/creatorwyx_din_adapter/evaluation.json")
 
     batch_parser = subparsers.add_parser("batch-report", help="从 experiment_report.json 生成总览图。")
-    batch_parser.add_argument("--input", type=str, default="outputs/reports/current_experiments/experiment_report.json", help="experiment_report.json 路径。")
-    batch_parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    _add_common_arguments(batch_parser, "outputs/reports/current_experiments/experiment_report.json")
 
     summary_parser = subparsers.add_parser("summary", help="从 summary.json 生成训练过程曲线。")
-    summary_parser.add_argument("--input", type=str, default="outputs/grok_din_readout/summary.json", help="summary.json 路径。")
-    summary_parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    _add_common_arguments(summary_parser, "outputs/grok_din_readout/summary.json")
 
     truncation_parser = subparsers.add_parser("truncation-sweep", help="从 truncation sweep report.json 生成均值/方差与 seed 散点图。")
-    truncation_parser.add_argument("--input", type=str, default="outputs/truncation_sweep/grok_din_readout/report.json", help="truncation sweep report.json 路径。")
-    truncation_parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    _add_common_arguments(truncation_parser, "outputs/truncation_sweep/grok_din_readout/report.json")
 
     dataset_parser = subparsers.add_parser("dataset-profile", help="从 dataset_profile.json 生成数据画像图。")
-    dataset_parser.add_argument("--input", type=str, default="outputs/feature_engineering/dataset_profile.json", help="dataset_profile.json 路径。")
-    dataset_parser.add_argument("--output-dir", type=str, default="", help="图片输出目录，默认写到输入文件同级 plots/。")
+    _add_common_arguments(dataset_parser, "outputs/feature_engineering/dataset_profile.json")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    formats = _normalize_formats(args.formats)
     if args.command == "evaluation":
-        paths = plot_evaluation(args.input, args.output_dir or None)
+        paths = plot_evaluation(args.input, args.output_dir or None, formats)
     elif args.command == "batch-report":
-        paths = plot_batch_report(args.input, args.output_dir or None)
+        paths = plot_batch_report(args.input, args.output_dir or None, formats)
     elif args.command == "summary":
-        paths = plot_summary(args.input, args.output_dir or None)
+        paths = plot_summary(args.input, args.output_dir or None, formats)
     elif args.command == "truncation-sweep":
-        paths = plot_truncation_sweep(args.input, args.output_dir or None)
+        paths = plot_truncation_sweep(args.input, args.output_dir or None, formats)
     elif args.command == "dataset-profile":
-        paths = plot_dataset_profile(args.input, args.output_dir or None)
+        paths = plot_dataset_profile(args.input, args.output_dir or None, formats)
     else:
         raise ValueError(f"未知命令: {args.command}")
 

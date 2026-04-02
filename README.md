@@ -6,28 +6,84 @@
 https://algo.qq.com/#intro
 
 ## Introduction
-**推向统一序列建模与特征交互的大规模推荐系统**
+**迈向统一序列建模与特征交互的大规模推荐系统**
 
-推荐系统为大规模内容平台（信息流、短视频等）和数字广告（点击率/转化率预测等）提供核心支撑，直接影响用户体验、用户参与度和平台收入。在巨大的流量压力和严格的延迟限制下，这些系统每天需要进行数十亿次实时决策，并支撑着价值数千亿美元的数字广告市场。在过去二十年间，推荐系统研究沿着两条主要路径发展：特征交互模型，专注于对高维多字段分类特征和上下文特征进行建模；以及序列模型，通过基于嵌入的检索系统和Transformer风格的排序模型来捕捉用户行为的时间动态。尽管这两种范式都取得了显著成功，但它们在很大程度上是独立发展的。这种分离在工业系统中造成了结构性瓶颈：跨范式交互浅层化、优化目标不一致、扩展性有限，以及硬件和工程复杂性不断增加。随着序列长度和模型规模的持续增长，这些碎片化的架构变得越来越低效。
+推荐系统作为大规模内容平台（信息流、短视频等）与数字广告（点击率/转化率预估等）的核心引擎，直接决定了用户体验、参与度及平台商业收益。面对海量并发请求与严苛的实时响应约束，现代推荐系统每日需完成数十亿次在线决策，支撑起规模庞大的数字广告生态。过去二十年间，推荐技术主要沿两条路径演进：一是**特征交互模型**，专注于高维稀疏多域特征与上下文信号的深度交叉；二是**序列模型**，借助 Embedding 检索与 Transformer 架构捕捉用户行为的时序动态。尽管两条路线各自成果丰硕，但长期以来的割裂发展导致工业界系统面临结构性瓶颈：跨范式交互浅层化、优化目标不一致、扩展能力受限，以及日益攀升的硬件与工程复杂度。随着序列长度与模型参数的持续增长，这种碎片化架构的效率瓶颈愈发凸显。
 
-近年来，一些研究开始尝试弥合这两个历史上分离的分支 [1–3]。为了进一步加速这一方向的进展，我们提出了“推向统一序列建模与特征交互的大规模推荐系统”挑战。我们鼓励参赛者开发一种统一的标记化方案和一个同质化、可堆叠的骨干网络，在单一架构内同时建模用户序列行为和非序列的多字段特征，用于转化率预测。提交结果将根据单一的ROC曲线下面积（AUC） 指标进行排名。除了排行榜外，我们还将设立两项创新奖——统一模块创新奖（45,000美元） 和缩放规律创新奖（45,000美元），分别表彰在统一架构和系统性缩放规律探索方面的突出进展。这些奖项与排行榜排名无关，而研讨会论文评审将着重于这两个方向的新颖性和洞察力，而非仅仅关注AUC指标。
+近年来，学界与工业界开始探索融合这两大传统分支的统一建模范式 [1–3]。为加速该方向的突破，我们发起"**迈向统一序列建模与特征交互的大规模推荐系统**"挑战赛。我们鼓励参赛者设计统一的 Tokenization 方案与同质化、可堆叠的骨干网络，在单一架构内同时建模用户行为序列与非序列多域特征，完成转化率预估任务。参赛队伍将依据 ROC 曲线下面积（AUC）进行统一排名。除排行榜外，本次大赛特设两项创新奖——**统一模块创新奖**（45,000 美元）与**Scaling Law 创新奖**（45,000 美元），分别表彰在统一架构设计与系统性缩放规律探索方面的杰出工作。创新奖与排行榜名次独立评审，研讨会论文录用将重点考察方法在上述两个方向的新颖性与洞察力，而非单纯追求 AUC 指标。
 
 ------
 
 ## 我们的工作
-当前仓库现在同时维护两层能力：
 
-1. 一条可持续迭代的 Grok 风格 unified baseline 主线。
-2. 一组对公开方案的统一复现接口，全部适配到当前 TAAC parquet 数据流与单候选二分类任务。
+本仓库聚焦两大核心能力：
+
+1. **Grok 风格 Unified Baseline**：作为持续迭代的主线实现，提供统一的序列建模与特征交互框架。
+2. **公开方案适配接口**：将多种业界公开方案无缝接入 TAAC Parquet 数据流，统一至单候选二分类任务范式。
+
+## 可视化图表集
+
+所有可视化图表按实验轮次归档至 `docs/visualizations/round_001/` 与 `docs/visualizations/round_002/` 目录，统一通过 `uv run ... --formats svg` 命令导出为矢量格式，便于版本管理、学术排版与汇报复用。
+
+<table>
+	<tr>
+		<td width="50%" valign="top">
+			<p><strong>实验总览图</strong></p>
+			<img src="docs/visualizations/round_001/batch/experiment_dashboard.svg" alt="实验总览图">
+		</td>
+		<td width="50%" valign="top">
+			<p><strong>AUC-时延 Pareto 图</strong></p>
+			<img src="docs/visualizations/round_001/batch/experiment_pareto.svg" alt="AUC-时延 Pareto 图">
+		</td>
+	</tr>
+	<tr>
+		<td width="50%" valign="top">
+			<p><strong>截断策略总结图</strong></p>
+			<img src="docs/visualizations/round_001/truncation/truncation_summary.svg" alt="截断策略总结图">
+		</td>
+		<td width="50%" valign="top">
+			<p><strong>样例数据画像图</strong></p>
+			<img src="docs/visualizations/round_001/dataset/dataset_profile_overview.svg" alt="样例数据画像图">
+		</td>
+	</tr>
+	<tr>
+		<td width="50%" valign="top">
+			<p><strong>grok_din_readout 训练曲线</strong></p>
+			<img src="docs/visualizations/round_001/grok_din_readout/training_history.svg" alt="grok_din_readout 训练曲线">
+		</td>
+		<td width="50%" valign="top">
+			<p><strong>聚类 PCA 投影图</strong></p>
+			<img src="docs/visualizations/round_002/clustering/plots/cluster_pca_scatter.svg" alt="聚类 PCA 投影图">
+		</td>
+	</tr>
+	<tr>
+		<td width="50%" valign="top">
+			<p><strong>聚类候选 k 评分图</strong></p>
+			<img src="docs/visualizations/round_002/clustering/plots/cluster_k_selection.svg" alt="聚类候选 k 评分图">
+		</td>
+		<td width="50%" valign="top">
+			<p><strong>聚类画像热力图</strong></p>
+			<img src="docs/visualizations/round_002/clustering/plots/cluster_profile_heatmap.svg" alt="聚类画像热力图">
+		</td>
+	</tr>
+	<tr>
+		<td width="50%" valign="top">
+			<p><strong>Cluster 规模与正样本率</strong></p>
+			<img src="docs/visualizations/round_002/clustering/plots/cluster_size_label_rate.svg" alt="Cluster 规模与正样本率">
+		</td>
+		<td width="50%" valign="top"></td>
+	</tr>
+</table>
+
 
 当前 baseline 的核心结构：
 
-1. 将统计 dense feature 压成一个 static token。
-2. 将 user 与 context feature 保留为 context token 序列。
-3. 将 action_seq、content_seq、item_seq 统一编码成 history token 序列，并显式注入事件组件 token、sequence group 和 time gap。
-4. 将目标 item 与其 feature 压成单个 candidate token。
-5. 用 Grok 风格的统一 transformer 做建模：static prefix 双向注意力，history 仅看 static prefix 与更早历史，candidate 只读整个 prefix 和自己。
-6. 用 candidate output 做最终 CTR 二分类预测。
+1. 统计 dense feature 压缩为 static token。
+2. user 与 context feature 保留为 context token 序列。
+3. action_seq、content_seq、item_seq 统一编码为 history token 序列，注入事件组件、sequence group 与 time gap。
+4. 目标 item 及其 feature 压缩为单个 candidate token。
+5. Grok 风格统一 transformer 建模：static prefix 双向注意力，history 仅看 static prefix 与更早历史，candidate 读取整个 prefix 与自身。
+6. candidate output 输出 CTR 二分类预测。
 
 当前 baseline 已具备：
 
@@ -36,28 +92,30 @@ https://algo.qq.com/#intro
 3. AUC、PR-AUC、Brier、logloss 等多指标评估。
 4. 按序列长度、行为密度、时间窗口分桶的验证看板。
 5. 推理延迟基准统计。
-6. 单模型主线下的持续迭代接口。
+6. 单模型主线持续迭代接口。
 
-当前 unified 主线还新增了两个 target-aware readout 变体：configs/grok_din_readout.yaml 和 configs/unirec_din_readout.yaml。
+当前 unified 主线新增两个 target-aware readout 变体：`configs/grok_din_readout.yaml` 与 `configs/unirec_din_readout.yaml`。前者在 Grok backbone 输出端叠加 post-transformer DIN-style history readout；后者在 UniRec feature cross + interest token 基础上叠加同类 readout，验证 target-aware 耦合的叠加效果。
 
-前者保持同一套 Grok unified backbone，只在输出端增加 post-transformer DIN-style target-aware history readout；后者则在 UniRec 的 feature cross + interest token 主体上继续叠加同类 readout，用来验证两种 target-aware 耦合是否能直接叠加。
+在此基础上，仓库已接入以下公开方案的适配版本：
 
-在此基础上，当前仓库已经重新接入以下公开方案的适配版本：
+| 方案                           | 配置文件                                      | 原始仓库                                                                                                                        |
+| ------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| creatorwyx DIN adapter         | `configs/creatorwyx_din_adapter.yaml`         | [creatorwyx/TAAC2026-CTR-Baseline](https://github.com/creatorwyx/TAAC2026-CTR-Baseline)                                         |
+| creatorwyx grouped DIN adapter | `configs/creatorwyx_grouped_din_adapter.yaml` | [creatorwyx/TAAC2026-CTR-Baseline](https://github.com/creatorwyx/TAAC2026-CTR-Baseline)                                         |
+| Tencent 2025 SASRec adapter    | `configs/tencent_sasrec_adapter.yaml`         | [TencentAdvertisingAlgorithmCompetition/baseline_2025](https://github.com/TencentAdvertisingAlgorithmCompetition/baseline_2025) |
+| zcyeee retrieval-style adapter | `configs/zcyeee_retrieval_adapter.yaml`       | [zcyeee/TAAC](https://github.com/zcyeee/TAAC)                                                                                   |
+| O_o retrieval-style adapter    | `configs/oo_retrieval_adapter.yaml`           | [salmon1802/O_o](https://github.com/salmon1802/O_o)                                                                             |
+| OmniGenRec-style adapter       | `configs/omnigenrec_adapter.yaml`             | [mx-Liu123/OmniGenRec-TAAC2025](https://github.com/mx-Liu123/OmniGenRec-TAAC2025)                                               |
+| DeepContextNet                 | `configs/deep_context_net.yaml`               | [suyanli220/TAAC-2026-Baseline](https://github.com/suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest)                 |
+| UniRec                         | `configs/unirec.yaml`                         | [hojiahao/TAAC2026](https://github.com/hojiahao/TAAC2026)                                                                       |
+| UniScaleFormer                 | `configs/uniscaleformer.yaml`                 | [twx145/Unirec](https://github.com/twx145/Unirec)                                                                               |
+| UniRec DIN readout             | `configs/unirec_din_readout.yaml`             | [hojiahao/TAAC2026](https://github.com/hojiahao/TAAC2026)                                                                       |
 
-1. creatorwyx DIN adapter：configs/creatorwyx_din_adapter.yaml
-2. creatorwyx grouped DIN adapter：configs/creatorwyx_grouped_din_adapter.yaml
-3. Tencent 2025 SASRec adapter：configs/tencent_sasrec_adapter.yaml
-4. zcyeee retrieval-style adapter：configs/zcyeee_retrieval_adapter.yaml
-5. O_o retrieval-style adapter：configs/oo_retrieval_adapter.yaml
-6. OmniGenRec-style adapter：configs/omnigenrec_adapter.yaml
-7. DeepContextNet：configs/deep_context_net.yaml
-8. UniRec：configs/unirec.yaml
-9. UniScaleFormer：configs/uniscaleformer.yaml
-10. UniRec DIN readout：configs/unirec_din_readout.yaml
-
-说明：这些复现统一复用当前 parquet 编码、时间切分验证、多指标评估、分桶验证看板和延迟测试框架，因此它们是“在本仓库任务设定下的结构适配复现”，而不是逐字节复制外部仓库的数据管线与训练脚本。
+说明：上述复现统一复用本仓库的 parquet 编码、时间切分验证、多指标评估、分桶看板与延迟测试框架，属于"在本仓库任务设定下的结构适配复现"，而非逐字节复制外部仓库的数据管线与训练脚本。
 
 详细训练、评估、可视化等命令请参考 [dev.md](dev.md)。
+
+当前仓库还支持基于行为密度、序列结构、冷热度与时序位置的无监督聚类分析，可用 `uv run taac-feature-cluster` 自动完成候选 k 评估、最终分群、簇画像、cluster assignment 导出与聚类图表生成。
 
 ------
 
@@ -132,37 +190,35 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 调查时间: 2026-04-02
 
 **2025届：官方 / 公开代码**  
-[1] [TencentAdvertisingAlgorithmCompetition/baseline_2025](https://github.com/TencentAdvertisingAlgorithmCompetition/baseline_2025) 官方 parquet baseline，主体为 SASRec，并附带 faiss-based-ann 检索与 RQ-VAE 扩展入口。  
-[2] [zcyeee/TAAC](https://github.com/zcyeee/TAAC) 决赛方案公开仓库，README 给出生成式 next-item 推荐框架、训练流程与 Top-K 推理脚本。  
-[3] [salmon1802/O_o](https://github.com/salmon1802/O_o) O_o 队伍公开代码，仓库说明标注为 2025 初赛第十四名 / 初赛 Top 1%。  
-[4] [mx-Liu123/OmniGenRec-TAAC2025](https://github.com/mx-Liu123/OmniGenRec-TAAC2025) 复现 OmniGenRec 两个关键组件，README 给出 HR@10 / NDCG@10 的提升记录。  
+1. [TencentAdvertisingAlgorithmCompetition/baseline_2025](https://github.com/TencentAdvertisingAlgorithmCompetition/baseline_2025) 官方 parquet baseline，主体为 SASRec，并附带 faiss-based-ann 检索与 RQ-VAE 扩展入口。  
+2. [zcyeee/TAAC](https://github.com/zcyeee/TAAC) 决赛方案公开仓库，README 给出生成式 next-item 推荐框架、训练流程与 Top-K 推理脚本。  
+3. [salmon1802/O_o](https://github.com/salmon1802/O_o) O_o 队伍公开代码，仓库说明标注为 2025 初赛第十四名 / 初赛 Top 1%。  
+4. [mx-Liu123/OmniGenRec-TAAC2025](https://github.com/mx-Liu123/OmniGenRec-TAAC2025) 复现 OmniGenRec 两个关键组件，README 给出 HR@10 / NDCG@10 的提升记录。  
 
 **2025届：博客 / 新闻 / 资料**  
-[5] [TAAC七日游](https://pd-ch.github.io/blog/2025-07-31-taac-participate-record/) 一份较完整的个人复盘，覆盖论文补课、RQ-VAE/HSTU 学习、实验记录和比赛期资料整理。  
-[6] [从算法大赛千名开外到鹅厂技术骨干，他们亲授“逆袭秘籍”｜学长深度访谈直播实录](https://mp.weixin.qq.com/s/mAVOICmMOay_Axcr0IN4PA) 官方公众号文章，偏组队、工程化、提交策略和竞赛节奏。  
-[7] [一文读懂算法大赛前沿赛题｜赛前必看攻略第7期](https://mp.weixin.qq.com/s/xz0kb-xjCOy_A0k_gYwKeg) 官方赛前攻略，梳理赛题重点、baseline 思路和优化方向。  
-[8] [Angel平台&GPU虚拟化技术全解析｜赛期进阶攻略第1期](https://mp.weixin.qq.com/s/yzqPYYm0Ybf8_6A-IlIYBQ) 官方平台资料，偏训练环境、GPU 虚拟化和赛期工程细节。  
+1. [TAAC七日游](https://pd-ch.github.io/blog/2025-07-31-taac-participate-record/) 一份较完整的个人复盘，覆盖论文补课、RQ-VAE/HSTU 学习、实验记录和比赛期资料整理。  
+2. [从算法大赛千名开外到鹅厂技术骨干，他们亲授“逆袭秘籍”｜学长深度访谈直播实录](https://mp.weixin.qq.com/s/mAVOICmMOay_Axcr0IN4PA) 官方公众号文章，偏组队、工程化、提交策略和竞赛节奏。  
+3. [一文读懂算法大赛前沿赛题｜赛前必看攻略第7期](https://mp.weixin.qq.com/s/xz0kb-xjCOy_A0k_gYwKeg) 官方赛前攻略，梳理赛题重点、baseline 思路和优化方向。  
+4. [Angel平台&GPU虚拟化技术全解析｜赛期进阶攻略第1期](https://mp.weixin.qq.com/s/yzqPYYm0Ybf8_6A-IlIYBQ) 官方平台资料，偏训练环境、GPU 虚拟化和赛期工程细节。  
 
 **2026届：公开仓库 / 方案**  
-[1] [creatorwyx/TAAC2026-CTR-Baseline](https://github.com/creatorwyx/TAAC2026-CTR-Baseline) DIN baseline，侧重流式清洗、地址簿随机读取与单机训练工程化。  
-[2] [suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest](https://github.com/suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest) DeepContextNet baseline，显式走 HSTU 风格序列建模与 Muon 优化器路线。  
-[3] [hojiahao/TAAC2026](https://github.com/hojiahao/TAAC2026) UniRec 方案，强调 unified tokenization、混合 attention mask、scaling law 和 2 卡 DDP。  
-[4] [twx145/Unirec](https://github.com/twx145/Unirec) UniScaleFormer 模板，内置 InterFormer / OneTrans / HyFormer / base 配置对比与 scaling law 脚本。  
+1. [creatorwyx/TAAC2026-CTR-Baseline](https://github.com/creatorwyx/TAAC2026-CTR-Baseline) DIN baseline，侧重流式清洗、地址簿随机读取与单机训练工程化。  
+2. [suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest](https://github.com/suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest) DeepContextNet baseline，显式走 HSTU 风格序列建模与 Muon 优化器路线。  
+3. [hojiahao/TAAC2026](https://github.com/hojiahao/TAAC2026) UniRec 方案，强调 unified tokenization、混合 attention mask、scaling law 和 2 卡 DDP。  
+4. [twx145/Unirec](https://github.com/twx145/Unirec) UniScaleFormer 模板，内置 InterFormer / OneTrans / HyFormer / base 配置对比与 scaling law 脚本。  
 
 **2026届：EDA / 资料入口**  
-[5] [hun9008/TAAC_DI_Lab_EDA](https://github.com/hun9008/TAAC_DI_Lab_EDA) 对公开 sample parquet 做了较完整的 EDA，包含 label 分布、序列长度、feature 密度和建模建议。  
-[6] https://huggingface.co/datasets/TAAC2026/data_sample_1000 官方样例数据页面。  
-[7] https://algo.qq.com/#intro 大赛主页。  
-
-注：2026 仍处于开赛早期，部分公开仓库更偏 demo 或方案草稿，阅读时需要区分正式赛题数据、样例数据和仓库作者自造的占位特征。  
+1. [hun9008/TAAC_DI_Lab_EDA](https://github.com/hun9008/TAAC_DI_Lab_EDA) 对公开 sample parquet 做了较完整的 EDA，包含 label 分布、序列长度、feature 密度和建模建议。  
+2. [https://huggingface.co/datasets/TAAC2026/data_sample_1000](https://huggingface.co/datasets/TAAC2026/data_sample_1000) 官方样例数据页面。  
+3. [https://algo.qq.com/#intro](https://algo.qq.com/#intro) 大赛主页。  
 
 **系统参考**  
-[1] 本仓库内置了 xAI 开源的 x-algorithm 副本：third_party/x-algorithm  
+1. 本仓库内置了 xAI 开源的 x-algorithm 副本：third_party/x-algorithm  
 
 ## References
-[1] InterFormer: Effective Heterogeneous Interaction Learning for Click-Through Rate Prediction. CIKM, 2025.  
+1. InterFormer: Effective Heterogeneous Interaction Learning for Click-Through Rate Prediction. CIKM, 2025.  
 https://arxiv.org/abs/2411.09852  
-[2] OneTrans: Unified Feature Interaction and Sequence Modeling with One Transformer in Industrial Recommender. arXiv preprint, 2025.  
+2. OneTrans: Unified Feature Interaction and Sequence Modeling with One Transformer in Industrial Recommender. arXiv preprint, 2025.  
 https://arxiv.org/abs/2510.26104  
-[3] HyFormer: Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction. arXiv preprint, 2026.  
-https://arxiv.org/abs/2601.12681  
+3. HyFormer: Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction. arXiv preprint, 2026.  
+https://arxiv.org/abs/2601.12681

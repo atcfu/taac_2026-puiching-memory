@@ -902,6 +902,7 @@ source = { editable = "." }
 dependencies = [
     { name = "huggingface-hub" },
     { name = "matplotlib" },
+    { name = "numpy" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "pyyaml" },
@@ -914,6 +915,7 @@ dependencies = [
 requires-dist = [
     { name = "huggingface-hub", specifier = ">=1.8.0" },
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "numpy", specifier = ">=2.4.0" },
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "pyarrow", specifier = ">=23.0.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },

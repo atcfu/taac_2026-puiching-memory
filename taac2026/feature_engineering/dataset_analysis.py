@@ -171,6 +171,76 @@ def _frequency_bucket_summary(
     return results
 
 
+def build_row_feature_frame(
+    dataset_path: str | Path,
+    label_action_type: int = 2,
+    max_seq_len: int = 256,
+) -> pd.DataFrame:
+    dataframe = pd.read_parquet(Path(dataset_path))
+
+    row_records: list[dict[str, Any]] = []
+    user_frequency = dataframe["user_id"].astype(str).value_counts()
+    item_frequency = dataframe["item_id"].astype(str).value_counts()
+
+    for row in dataframe.itertuples(index=False):
+        row_timestamp = int(row.timestamp)
+        sequence_groups = row.seq_feature if row.seq_feature is not None else {}
+
+        total_events = 0
+        non_empty_groups = 0
+        oldest_timestamps: list[int] = []
+        group_lengths: dict[str, int] = {}
+
+        for group_name, features in sequence_groups.items():
+            group_length, oldest_timestamp = _sequence_group_profile(features)
+            group_lengths[group_name] = int(group_length)
+            total_events += group_length
+            if group_length > 0:
+                non_empty_groups += 1
+            if oldest_timestamp is not None:
+                oldest_timestamps.append(oldest_timestamp)
+
+        span_hours = 0.0
+        if oldest_timestamps:
+            span_hours = max(row_timestamp - min(oldest_timestamps), 0) / 3600.0
+
+        total_events_float = float(total_events)
+        action_length = float(group_lengths.get("action_seq", 0))
+        content_length = float(group_lengths.get("content_seq", 0))
+        item_length = float(group_lengths.get("item_seq", 0))
+        denominator = max(total_events_float, 1.0)
+
+        user_id = str(row.user_id)
+        item_id = str(row.item_id)
+        row_records.append(
+            {
+                "user_id": user_id,
+                "item_id": item_id,
+                "timestamp": row_timestamp,
+                "hour_of_day": int((row_timestamp // 3600) % 24),
+                "label": _label_from_entries(row.label, label_action_type),
+                "total_event_count": total_events_float,
+                "selected_event_count": float(min(total_events, max_seq_len)),
+                "truncation_flag": float(total_events > max_seq_len),
+                "active_span_hours": float(span_hours),
+                "behavior_density": float(total_events / max(span_hours, 1.0)) if total_events > 0 else 0.0,
+                "non_empty_group_count": float(non_empty_groups),
+                "user_feature_count": float(_safe_len(row.user_feature)),
+                "item_feature_count": float(_safe_len(row.item_feature)),
+                "user_frequency": float(user_frequency[user_id]),
+                "item_frequency": float(item_frequency[item_id]),
+                "action_seq_length": action_length,
+                "content_seq_length": content_length,
+                "item_seq_length": item_length,
+                "action_seq_share": action_length / denominator,
+                "content_seq_share": content_length / denominator,
+                "item_seq_share": item_length / denominator,
+            }
+        )
+
+    return pd.DataFrame.from_records(row_records)
+
+
 def build_dataset_profile_artifacts(
     dataset_path: str | Path,
     label_action_type: int = 2,
@@ -324,4 +394,4 @@ def print_dataset_profile_summary(profile: dict[str, Any]) -> None:
         )
 
 
-__all__ = ["build_dataset_profile_artifacts", "print_dataset_profile_summary"]
+__all__ = ["build_dataset_profile_artifacts", "build_row_feature_frame", "print_dataset_profile_summary"]

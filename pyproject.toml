@@ -12,6 +12,7 @@ license = { text = "MIT" }
 dependencies = [
   "huggingface_hub>=1.8.0",
   "matplotlib>=3.10.8",
+  "numpy>=2.4.0",
   "pandas>=3.0.2",
   "pyarrow>=23.0.1",
   "pyyaml>=6.0.3",
@@ -28,6 +29,7 @@ taac-truncation-sweep = "taac2026.truncation_sweep:main"
 taac-visualize = "taac2026.visualize:main"
 taac-feature-schema = "taac2026.feature_engineering.cli:main"
 taac-feature-profile = "taac2026.feature_engineering.analysis_cli:main"
+taac-feature-cluster = "taac2026.feature_engineering.cluster_cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["taac2026"]
