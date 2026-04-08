@@ -2,7 +2,21 @@
 
 > [!NOTE]  
 > 这是TAAC其中一个参赛队伍的代码仓库, 不代表官方文档  
-> 我们的目标是提供一个开箱即用的训练框架, 以促进社区在统一序列建模与特征交互的大规模推荐系统方向上的研究和创新。
+> 我们的目标是提供一个开箱即用的训练框架  
+> 以促进社区在统一序列建模与特征交互的大规模推荐系统方向上的研究和创新。
+
+> [!IMPORTANT]
+> 感谢各位的支持, 本项目会继续维护  
+> 但是以下情况可能需要注意:  
+> 1. 我们无法保持API稳定  
+> 2. 我们可能会随时压缩commit记录  
+> 3. 我们没有启用git LFS管理大文件  
+> 4. 对于各个子模型缺乏100%的研究和复现  
+> 
+> 我们擅长的事情是:  
+> 1. 开箱可用的框架  
+> 2. 大算力最优超参数搜索  
+> 3. 及时同步最新的论文和公开方案  
 
 https://algo.qq.com/#intro
 
@@ -35,7 +49,11 @@ uv sync --locked
 # 训练默认 baseline
 uv run taac-train --experiment config/gen/baseline
 
-# 评估默认输出目录中的 best.pt
+# 用 optuna 搜索 baseline，默认会按当前可见 GPU 空闲显存自动并行派发 trial
+# 默认约束仍然是参数量 <= 3 GiB、验证集端到端推理总时长 <= 180 秒
+uv run taac-search --experiment config/gen/baseline --trials 20
+
+# 评估默认输出目录中的 best.pt；single 模式始终只评估一个实验/一个 checkpoint
 uv run taac-evaluate single --experiment config/gen/baseline
 
 # 跑完整训练栈回归
