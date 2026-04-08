@@ -4,6 +4,7 @@ outputs/
 __pycache__/
 .agents/
 .codex/
+*.egg-info/
 
 # TAAC2026 Symbiosis
 config/gen/symbiosis/
