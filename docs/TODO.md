@@ -7,12 +7,12 @@ icon: material/map-marker-path
 
 ## 文档站下一步
 
-- [x] 建立 Material for MkDocs 站点配置。
+- [x] 建立 Zensical 文档站配置并完成兼容迁移。
 - [x] 把大块文档拆成首页、快速开始、CLI、项目结构、实验记录、开发文档。
 - [x] 为每个实验包补独立站内页面，并把 `config/` 下的 Markdown 统一迁到 `docs/` 管理。
 - [ ] 增加“数据契约 / batch contract”专页，明确 parquet 输入、batch 字段与模型侧约束。
 - [ ] 增加“常见故障”专页，覆盖数据路径、缺 checkpoint、GPU 调度和搜索失败等问题。
-- [ ] 如果后续有公开部署地址，再补 `site_url`、仓库编辑链接和社交卡片。
+- [ ] 后续补仓库编辑链接和社交卡片。
 
 ## 项目能力待补
 

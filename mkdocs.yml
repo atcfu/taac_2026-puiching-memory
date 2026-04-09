@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+# Zensical currently reads this MkDocs-compatible config during migration.
 
 site_name: TAAC 2026 Docs
 site_description: TAAC 2026 训练框架、实验包与开发约定

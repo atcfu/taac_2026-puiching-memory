@@ -70,27 +70,31 @@ uv run taac-plot-model-performance --x-metric compute
 
 ## 文档站本地预览
 
-这个仓库现在改为基于 Material for MkDocs 组织文档，最小预览命令是：
+这个仓库现在改为基于 Zensical 组织文档；为了降低迁移风险，当前先继续复用现有的 `mkdocs.yml` 兼容配置。最小预览命令是：
 
 ```bash
-uv run --with mkdocs-material mkdocs serve
+uv run --no-project --isolated --with zensical zensical serve
 ```
 
 做构建校验时使用：
 
 ```bash
-uv run --with mkdocs-material mkdocs build --strict
+uv run --no-project --isolated --with zensical zensical build --clean
 ```
+
+这里显式加 `--no-project --isolated`，目的是让文档命令只安装 Zensical 相关依赖，不去解析或同步训练环境里的 `torch` 等项目依赖。CI 同样沿用这套隔离式 docs-only 执行方式，并通过环境变量注入正式部署地址。
 
 ## GitHub Pages 自动发布
 
 仓库现在带有 `.github/workflows/deploy-docs.yml`：
 
-1. 每次 push 到 `main`，都会先执行严格构建校验，再运行 `mkdocs gh-deploy --force`。
-2. 构建成功后，CI 会把生成后的静态站推送到 `gh-pages` 分支。
+1. 每次 push 到 `main`，都会先在隔离的 docs-only 环境里运行 `zensical build --clean`。
+2. 构建成功后，CI 会把 `site/` 目录上传成 GitHub Pages artifact，再交给官方 Pages deploy action 发布。
 3. 也可以在 Actions 页手动触发一次 `Deploy Docs`。
 
-第一次启用时，还需要在 GitHub 仓库设置里把 Pages 的 Source 切换为 `Deploy from a branch`，并选择 `gh-pages` / `root`。
+这条 workflow 同样使用隔离的 docs-only 环境，不依赖项目主虚拟环境是否已经同步完成。
+
+第一次启用时，还需要在 GitHub 仓库设置里启用 Pages，并把 Build and deployment 的 Source 设为 `GitHub Actions`。
 
 ## 当前 CLI 的日志与终端行为
 

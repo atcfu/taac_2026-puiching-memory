@@ -7,7 +7,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: deploy-docs
@@ -15,18 +17,19 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
       SITE_URL: https://puiching-memory.github.io/TAAC_2026/
 
     steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
       - name: Checkout repository
         uses: actions/checkout@v5
-
-      - name: Configure Git credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,8 +41,14 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Build MkDocs site
-        run: uv run --with mkdocs-material mkdocs build --strict
+      - name: Build Zensical site
+        run: uv run --no-project --isolated --with zensical zensical build --clean
 
-      - name: Deploy to gh-pages
-        run: uv run --with mkdocs-material mkdocs gh-deploy --force
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
