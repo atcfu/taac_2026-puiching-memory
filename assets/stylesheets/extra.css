@@ -1,0 +1,68 @@
+:root {
+  --taac-card-radius: 1rem;
+}
+
+.md-grid {
+  max-width: 1380px;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  letter-spacing: -0.02em;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+}
+
+.md-typeset .hero-copy {
+  max-width: 52rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > ol > li {
+  border-radius: var(--taac-card-radius);
+  border: 1px solid rgba(17, 94, 89, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 246, 242, 0.9));
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li,
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ol > li {
+  border-color: rgba(110, 231, 183, 0.16);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 64, 58, 0.72));
+  box-shadow: 0 24px 50px rgba(2, 8, 23, 0.35);
+}
+
+.md-typeset .md-button {
+  border-radius: 999px;
+}
+
+.md-typeset table:not([class]) {
+  font-size: 0.92rem;
+}
+
+.md-typeset code {
+  border-radius: 0.35rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.9rem;
+}
+
+.md-typeset .arithmatex {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.md-typeset mjx-container[display="true"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
