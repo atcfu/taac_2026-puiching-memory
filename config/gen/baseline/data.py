@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Shared parquet-to-batch pipeline used by the baseline family.
+
+The baseline package intentionally keeps the data layer stable and reusable so
+other experiment packages can focus on their own model changes. That is why
+several sibling packages import `baseline.data` directly.
+"""
+
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,9 +17,9 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from taac2026.config import DataConfig
-from taac2026.types import BatchTensors, DataStats
-from taac2026.utils import stable_hash64
+from taac2026.domain.config import DataConfig
+from taac2026.domain.types import BatchTensors, DataStats
+from taac2026.infrastructure.io.files import stable_hash64
 
 
 DENSE_FEATURE_DIM = 16

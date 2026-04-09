@@ -5,8 +5,8 @@ import math
 import torch
 from torch import nn
 
-from taac2026.config import DataConfig, ModelConfig
-from taac2026.types import BatchTensors
+from taac2026.domain.config import DataConfig, ModelConfig
+from taac2026.domain.types import BatchTensors
 
 from .data import AUTHOR_TOKEN_COUNT, TIME_GAP_BUCKET_COUNT
 

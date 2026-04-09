@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Reusable loss and optimizer wiring for reference-style experiment packages."""
+
 import torch
 import torch.nn.functional as F
 from torch import nn

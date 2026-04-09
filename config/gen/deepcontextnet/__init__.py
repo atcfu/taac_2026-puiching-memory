@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from taac2026.config import DataConfig, ModelConfig, TrainConfig
-from taac2026.folder_experiment import FolderExperiment
+from taac2026.domain.config import DataConfig, ModelConfig, TrainConfig
+from taac2026.domain.experiment import ExperimentSpec
 
 from .data import build_data_pipeline
 from .model import build_model_component
@@ -15,7 +15,7 @@ DEFAULT_DATASET = ROOT / "data" / "datasets--TAAC2026--data_sample_1000" / "snap
 DEFAULT_OUTPUT_DIR = ROOT / "outputs" / "gen" / "deepcontextnet"
 
 
-EXPERIMENT = FolderExperiment(
+EXPERIMENT = ExperimentSpec(
     name="deepcontextnet",
     data=DataConfig(
         dataset_path=str(DEFAULT_DATASET),

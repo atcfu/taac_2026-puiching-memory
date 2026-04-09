@@ -1,27 +1,44 @@
-# TAAC_2026
+<h1 align="center">TAAC 2026 Experiment Workspace</h1>
 
-> [!NOTE]  
-> 这是TAAC其中一个参赛队伍的代码仓库, 不代表官方文档  
-> 我们的目标是提供一个开箱即用的训练框架  
-> 以促进社区在统一序列建模与特征交互的大规模推荐系统方向上的研究和创新。
+<p align="center">
+  <strong>迈向统一序列建模与特征交互的大规模推荐系统</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/PyTorch-2.6%2B-EE4C2C.svg" alt="PyTorch">
+  <img src="https://img.shields.io/badge/Task-Recommendation-brightgreen.svg" alt="Task">
+  <img src="https://img.shields.io/badge/Track-TAAC%202026-orange.svg" alt="Track">
+  <img src="https://img.shields.io/badge/Status-Research-yellow.svg" alt="Status">
+</p>
+
+<p align="center">
+  <a href="https://algo.qq.com/#intro">Competition</a> ·
+  <a href="docs/getting-started.md">Quick Start</a> ·
+  <a href="docs/experiments.md">Experiments</a> ·
+  <a href="docs/index.md">Docs</a>
+</p>
+
+> [!NOTE]
+> 这是 TAAC 2026 其中一个参赛队伍的代码仓库，不代表官方文档。
+> 我们的目标是提供一个开箱即用、便于扩展和回归验证的实验工作区，
+> 以促进社区在统一序列建模与特征交互方向上的研究和创新。
 
 > [!IMPORTANT]
-> 感谢各位的支持, 本项目会继续维护  
-> 但是以下情况可能需要注意:  
-> 1. 我们无法保持API稳定  
-> 2. 我们可能会随时压缩commit记录  
-> 3. 我们没有启用git LFS管理大文件  
-> 4. 对于各个子模型缺乏100%的研究和复现  
-> 
-> 我们擅长的事情是:  
-> 1. 开箱可用的框架  
-> 2. 大算力最优超参数搜索  
-> 3. 及时同步最新的论文和公开方案  
+> 本项目会继续维护，但仍有几条边界需要提前说明：
+> 1. 我们无法保证 API 长期稳定。
+> 2. 我们可能会按需要整理或压缩 commit 历史。(预定在比赛正式开始后进行一次)
+> 3. 各子模型的研究与复现状态并不等于 100% 官方还原。
+>
+> 当前仓库更擅长的事情是：
+> 1. 提供开箱可用的训练与评估框架。
+> 2. 支持大算力场景下的超参数搜索和实验管理。
+> 3. 持续同步最新论文、公开方案和可复核实验包。
 
-https://algo.qq.com/#intro
+这是一个面向 TAAC 2026 的实验工作区。我们把共享训练底座、目录式实验包、统一输出产物和回归测试放进同一套工程里，让新实验可以更快接入、训练、评估和复核。
 
-## Introduction
-**迈向统一序列建模与特征交互的大规模推荐系统**
+## 项目简介
 
 推荐系统作为大规模内容平台（信息流、短视频等）与数字广告（点击率/转化率预估等）的核心引擎，直接决定了用户体验、参与度及平台商业收益。面对海量并发请求与严苛的实时响应约束，现代推荐系统每日需完成数十亿次在线决策，支撑起规模庞大的数字广告生态。过去二十年间，推荐技术主要沿两条路径演进：一是**特征交互模型**，专注于高维稀疏多域特征与上下文信号的深度交叉；二是**序列模型**，借助 Embedding 检索与 Transformer 架构捕捉用户行为的时序动态。尽管两条路线各自成果丰硕，但长期以来的割裂发展导致工业界系统面临结构性瓶颈：跨范式交互浅层化、优化目标不一致、扩展能力受限，以及日益攀升的硬件与工程复杂度。随着序列长度与模型参数的持续增长，这种碎片化架构的效率瓶颈愈发凸显。
 
@@ -38,7 +55,7 @@ https://algo.qq.com/#intro
 我们的目标很简单：在一套统一的 parquet batch 上，能快速接进来、跑起来、评估掉、还有回归保障。
 
 1. `src/taac2026`：共享底座，提供 FolderExperiment 加载、训练入口、评估入口、基础指标，以及 checkpoint / summary 的读写能力。
-2. `config/gen/<name>`：目录式实验包。每个包自己管理 `data.py`、`model.py`、`utils.py`、`__init__.py` 和一份 README，直接导出 `EXPERIMENT`。
+2. `config/gen/<name>`：目录式实验包。每个包自己管理 `data.py`、`model.py`、`utils.py`、`__init__.py`，配套说明统一收口到 `docs/packages/<name>.md`，并直接导出 `EXPERIMENT`。
 
 ## 快速开始
 
@@ -46,7 +63,7 @@ https://algo.qq.com/#intro
 uv python install 3.14
 uv sync --locked
 
-# 训练默认 baseline
+# 训练 starter baseline
 uv run taac-train --experiment config/gen/baseline
 
 # 用 optuna 搜索 baseline，默认会按当前可见 GPU 空闲显存自动并行派发 trial
@@ -64,7 +81,8 @@ uv run pytest tests -q
 
 | 实验包         | 目录                                                   | 公开来源                                                                                                                                      | 默认输出目录                 | 可复核状态                         |
 | -------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------- |
-| Baseline       | [config/gen/baseline](config/gen/baseline)             | 本仓库本地 unified baseline                                                                                                                   | `outputs/gen/baseline`       | 有 sample smoke summary            |
+| Baseline       | [config/gen/baseline](config/gen/baseline)             | 本仓库维护的 starter/reference package，强调可扩展性、注释与二次开发体验                                                                     | `outputs/gen/baseline`       | 可直接运行，待新一轮 smoke 记录    |
+| Grok           | [config/gen/grok](config/gen/grok)                     | 从旧 `baseline` 中拆分出来的本地 grok 方案                                                                                                   | `outputs/gen/grok`           | 历史产物仍保留在 legacy baseline 路径 |
 | CTR Baseline   | [config/gen/ctr_baseline](config/gen/ctr_baseline)     | [creatorwyx/TAAC2026-CTR-Baseline](https://github.com/creatorwyx/TAAC2026-CTR-Baseline)                                                       | `outputs/gen/ctr_baseline`   | forward regression + smoke summary |
 | DeepContextNet | [config/gen/deepcontextnet](config/gen/deepcontextnet) | [suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest](https://github.com/suyanli220/TAAC-2026-Baseline-Tencent-Advertisement-Contest) | `outputs/gen/deepcontextnet` | forward regression + smoke summary |
 | InterFormer    | [config/gen/interformer](config/gen/interformer)       | [InterFormer paper](https://arxiv.org/abs/2411.09852)                                                                                         | `outputs/gen/interformer`    | forward regression + smoke summary |
@@ -74,14 +92,18 @@ uv run pytest tests -q
 | UniScaleFormer | [config/gen/uniscaleformer](config/gen/uniscaleformer) | [twx145/Unirec](https://github.com/twx145/Unirec)                                                                                             | `outputs/gen/uniscaleformer` | forward regression + smoke summary |
 | O_o            | [config/gen/oo](config/gen/oo)                         | [salmon1802/O_o](https://github.com/salmon1802/O_o)                                                                                           | `outputs/gen/oo`             | forward regression + smoke summary |
 
-更详细的训练命令、输出文件说明和当前 smoke 记录，可以看 [docs/dev.md](docs/dev.md) 和 [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)。
+更详细的训练命令、输出文件说明、当前 smoke 记录和各实验包说明，可以看 [docs/dev.md](docs/dev.md)、[docs/experiments.md](docs/experiments.md) 和 [docs/packages/index.md](docs/packages/index.md)。
 
 ------
 
 ## Timeline
-Global Registration Mar.19 — Apr.23 23:59:59 AOE
+1. Competition Begins - Mar.15, 2026 - 23:59:59 AOE - Releasing demo dataset
+2. Global Registration - Mar.19 ~ Apr.23 - 23:59:59 AOE
+3. First-round Competition - Apr.24 ~ May 23 - 23:59:59 AOE
+4. Second-round Competition - May 25 ~ Jun.24 - 23:59:59 AOE
+5. Winners Announcement - Jul.15, 2026 Winner Notification - Aug. 9, 2026 - Winner Public Announcement
 
-## Eligibility
+## Our Eligibility
 Academic Track
 
 ## Dataset&Task

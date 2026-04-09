@@ -1,9 +1,11 @@
-from .config import DataConfig, ModelConfig, TrainConfig
-from .folder_experiment import FolderExperiment
+from .domain import BatchTensors, DataConfig, DataStats, ExperimentSpec, ModelConfig, SearchConfig, TrainConfig
 
 __all__ = [
+    "BatchTensors",
     "DataConfig",
-    "FolderExperiment",
+    "DataStats",
+    "ExperimentSpec",
     "ModelConfig",
+    "SearchConfig",
     "TrainConfig",
 ]

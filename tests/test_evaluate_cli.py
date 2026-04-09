@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 import torch
 
 from config.gen.baseline.data import DENSE_FEATURE_DIM, load_dataloaders
-from taac2026.config import ModelConfig
-from taac2026.evaluate import _sort_records, evaluate_checkpoint, parse_args
-from taac2026.experiment_loader import load_experiment_package
-from tests.training_stack_support import TestWorkspace, TinyExperimentModel
+from taac2026.application.evaluation.cli import parse_args
+from taac2026.application.evaluation.service import _sort_records, evaluate_checkpoint
+from taac2026.domain.config import ModelConfig
+from taac2026.infrastructure.experiments.loader import load_experiment_package
+from tests.support import TestWorkspace, TinyExperimentModel, create_test_workspace
+
+
+@pytest.fixture
+def test_workspace(tmp_path: Path) -> TestWorkspace:
+    return create_test_workspace(tmp_path)
 
 
 def test_evaluate_checkpoint_accepts_compatible_checkpoint(test_workspace: TestWorkspace) -> None:

@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import pytest
 import torch
 
 from config.gen.baseline.data import DENSE_FEATURE_DIM, load_dataloaders
-from taac2026.utils import stable_hash64
-from tests.training_stack_support import TestWorkspace
+from taac2026.infrastructure.io.files import stable_hash64
+from tests.support import TestWorkspace, create_test_workspace
+
+
+@pytest.fixture
+def test_workspace(tmp_path: Path) -> TestWorkspace:
+    return create_test_workspace(tmp_path)
 
 
 def test_streaming_collate_batch_contract(test_workspace: TestWorkspace) -> None:

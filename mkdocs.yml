@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: TAAC 2026 Docs
+site_description: TAAC 2026 训练框架、实验包与开发约定
+site_author: TAAC 2026 Team
+docs_dir: docs
+
+theme:
+  name: material
+  language: zh
+  font:
+    text: IBM Plex Sans
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/weather-night
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到浅色模式
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - 首页: index.md
+  - 上手:
+      - 快速开始: getting-started.md
+      - CLI 指南: cli.md
+  - 参考:
+      - 项目结构: project-layout.md
+      - 实验包与验证记录: experiments.md
+      - 阶段说明:
+          - GEN 阶段: stages/gen.md
+          - MAIN 阶段: stages/main.md
+      - 实验包文档:
+          - 总览: packages/index.md
+          - baseline: packages/baseline.md
+          - grok: packages/grok.md
+          - ctr_baseline: packages/ctr_baseline.md
+          - deepcontextnet: packages/deepcontextnet.md
+          - interformer: packages/interformer.md
+          - onetrans: packages/onetrans.md
+          - hyformer: packages/hyformer.md
+          - unirec: packages/unirec.md
+          - uniscaleformer: packages/uniscaleformer.md
+          - oo: packages/oo.md
+          - symbiosis: packages/symbiosis.md
+      - 论文拆解:
+          - 总览: papers/index.md
+          - InterFormer: papers/interformer.md
+          - OneTrans: papers/onetrans.md
+          - HyFormer: papers/hyformer.md
+  - 维护:
+      - 开发文档: dev.md
+      - 路线图: TODO.md

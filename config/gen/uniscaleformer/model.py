@@ -6,8 +6,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from taac2026.config import DataConfig, ModelConfig
-from taac2026.types import BatchTensors
+from taac2026.domain.config import DataConfig, ModelConfig
+from taac2026.domain.types import BatchTensors
 
 from .data import TIME_GAP_BUCKET_COUNT
 from .utils import masked_mean

@@ -3,8 +3,8 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from taac2026.config import DataConfig, ModelConfig
-from taac2026.types import BatchTensors
+from taac2026.domain.config import DataConfig, ModelConfig
+from taac2026.domain.types import BatchTensors
 
 from .utils import masked_mean
 

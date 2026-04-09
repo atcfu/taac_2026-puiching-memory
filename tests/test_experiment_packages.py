@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 import pytest
 import torch
 
-from taac2026.experiment_loader import load_experiment_package
-from tests.training_stack_support import TestWorkspace, prepare_experiment
+from taac2026.infrastructure.experiments.loader import load_experiment_package
+from tests.support import TestWorkspace, create_test_workspace, prepare_experiment
+
+
+@pytest.fixture
+def test_workspace(tmp_path: Path) -> TestWorkspace:
+    return create_test_workspace(tmp_path)
 
 
 @pytest.mark.parametrize(
     "module_path",
     [
+        "config.gen.baseline",
+        "config.gen.grok",
         "config.gen.ctr_baseline",
         "config.gen.deepcontextnet",
         "config.gen.interformer",
@@ -42,6 +50,8 @@ def test_experiment_package_builds_and_runs_forward(module_path: str, test_works
 @pytest.mark.parametrize(
     "experiment_path",
     [
+        "config/gen/baseline",
+        "config/gen/grok",
         "config/gen/ctr_baseline",
         "config/gen/deepcontextnet",
         "config/gen/unirec",

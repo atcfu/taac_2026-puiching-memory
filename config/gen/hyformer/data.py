@@ -10,9 +10,9 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from taac2026.config import DataConfig
-from taac2026.types import BatchTensors, DataStats
-from taac2026.utils import stable_hash64
+from taac2026.domain.config import DataConfig
+from taac2026.domain.types import BatchTensors, DataStats
+from taac2026.infrastructure.io.files import stable_hash64
 
 
 DENSE_FEATURE_DIM = 16

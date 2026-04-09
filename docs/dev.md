@@ -1,163 +1,106 @@
+---
+title: 开发文档
+icon: material/wrench-cog-outline
+---
+
 # 开发文档
 
-## 当前分支实现范围
+这页面向维护者和贡献者，重点不是“怎么第一次跑通”，而是“改完之后怎么不把仓库搞乱”。
 
-当前分支的实现边界很明确：
+## 开发时的基本约束
 
-1. 共享底座位于 `src/taac2026`。
-2. 独立实验包位于 `config/gen`。
-3. 当前真实可用的 CLI 只有 `taac-train` 与 `taac-evaluate`。
-4. 当前回归入口是 `pytest tests -q`。
+1. 文档只写当前仓库真实存在的能力。
+2. 新增实验包时，同时更新代码、测试、实验记录和文档，而不是只补一半。
+3. 仓库路径统一写成内联代码，例如 `config/gen/unirec`，不要在站点里保留会失效的仓库相对链接。
+4. 结果页只记录当前工作区可直接打开文件复核的产物。
+5. 目录分层优先按“是否可复用”判断：共享逻辑进 `src/taac2026`，repo 专用薄脚本留在 `tools`。
 
-旧版文档里出现过的 `taac2026/experiments` 注册目录、`taac-visualize`、`taac-feature-*`、`taac-truncation-sweep` 等命令，在本分支里都没有对应实现。
-
-## 环境准备
-
-基于 uv 管理环境。依赖的事实来源是 `pyproject.toml` 与 `uv.lock`。
-
-```bash
-uv python install 3.14
-uv sync --locked
-```
-
-Linux 环境下，`torch` 已经通过 `pyproject.toml` 的 uv source 显式固定到 PyTorch 官方 `cu128` 索引。也就是说，这里的环境同步会安装 CUDA 12.8 轮子，而不会继续跟着最新版默认 CUDA 13.0。
-
-当前实验包已经在各自的 `__init__.py` 中写死了 sample parquet 默认路径：
-
-```text
-data/datasets--TAAC2026--data_sample_1000/snapshots/2f0ddba721a8323495e73d5229c836df5d603b39/sample_data.parquet
-```
-
-如果你要切换到别的数据集，当前 CLI 没有 `--dataset-path` 覆写。推荐做法是写一个本地 wrapper 实验包：
-
-```python
-from config.gen.oo import EXPERIMENT
-
-EXPERIMENT = EXPERIMENT.clone()
-EXPERIMENT.data.dataset_path = "/path/to/your.parquet"
-EXPERIMENT.train.output_dir = "outputs/custom/oo"
-```
-
-然后把这个目录路径传给 `--experiment`。
-
-## 训练命令
-
-命令行可以接受模块路径，也可以直接接受实验目录路径。当前仓库内实际存在的独立实验包如下：
-
-```bash
-uv run taac-train --experiment config/gen/baseline
-uv run taac-train --experiment config/gen/ctr_baseline
-uv run taac-train --experiment config/gen/deepcontextnet
-uv run taac-train --experiment config/gen/interformer
-uv run taac-train --experiment config/gen/onetrans
-uv run taac-train --experiment config/gen/hyformer
-uv run taac-train --experiment config/gen/unirec
-uv run taac-train --experiment config/gen/uniscaleformer
-uv run taac-train --experiment config/gen/oo
-```
-
-如果只想把输出落到单独目录，使用 `--run-dir`：
-
-```bash
-uv run taac-train --experiment config/gen/oo --run-dir outputs/smoke/oo_manual
-```
-
-## 评估命令
-
-单实验评估会默认读取实验包 `train.output_dir` 下的 `best.pt`：
-
-```bash
-uv run taac-evaluate single --experiment config/gen/baseline
-uv run taac-evaluate single --experiment config/gen/oo --run-dir outputs/smoke/oo
-```
-
-也可以显式指定 checkpoint 与输出文件：
-
-```bash
-uv run taac-evaluate single \
-	--experiment config/gen/interformer \
-	--checkpoint outputs/smoke/interformer/best.pt \
-	--output-path outputs/smoke/interformer/evaluation.json
-```
-
-批量评估当前支持：
-
-```bash
-uv run taac-evaluate batch --experiment-paths \
-	config/gen/baseline \
-	config/gen/ctr_baseline \
-	config/gen/deepcontextnet \
-	config/gen/interformer \
-	config/gen/onetrans \
-	config/gen/hyformer \
-	config/gen/unirec \
-	config/gen/uniscaleformer \
-	config/gen/oo
-```
-
-注意：`batch` 模式当前不会自动忽略错误；如果某个实验缺少 `best.pt`，或者 checkpoint 与当前模型定义不兼容，命令会直接失败。
-
-## 回归测试
-
-最重要的回归入口是：
+## 最重要的回归入口
 
 ```bash
 uv run pytest tests -q
 ```
 
-这个测试文件当前覆盖：
+## 仓库维护脚本
+
+repo 专用工具脚本放在 `tools/`，不要混进 `src/taac2026` 的运行时代码里。
+
+清理项目里的 `__pycache__`：
+
+```bash
+uv run taac-clean-pycache
+uv run taac-clean-pycache --dry-run
+```
+
+这个脚本默认扫描仓库根目录，并默认跳过 `.venv`、`venv`、`env`、`.tox` 和 `node_modules` 等环境目录；如果确实需要连环境目录一起清理，再显式加 `--include-env-dirs`。
+
+当前回归覆盖：
 
 1. 目录式实验包加载。
 2. 流式 parquet 数据管线。
-3. baseline / ctr_baseline / deepcontextnet / interformer / onetrans / hyformer / unirec / uniscaleformer / oo 的前向构建。
-4. train / evaluate 基本闭环。
+3. `baseline`、`grok`、`ctr_baseline`、`deepcontextnet`、`interformer`、`onetrans`、`hyformer`、`unirec`、`uniscaleformer`、`oo` 的前向构建。
+4. `train` / `evaluate` 基本闭环。
 5. checkpoint 兼容性校验。
 
-## 当前默认训练轮数
+## 新增实验包时至少要补什么
 
-当前 `config/gen` 下九个独立实验包的默认 `epochs` 都已统一调整为 10：
+以 `config/gen/<name>` 为单位，最少补齐下面几项：
 
-1. `baseline`
-2. `ctr_baseline`
-3. `deepcontextnet`
-4. `interformer`
-5. `onetrans`
-6. `hyformer`
-7. `unirec`
-8. `uniscaleformer`
-9. `oo`
+1. `__init__.py`，并导出 `EXPERIMENT`。
+2. `data.py`、`model.py`、`utils.py`。
+3. `docs/packages/<name>.md`，说明来源、适配方式、运行命令和当前验证状态；如果额外整理了论文长文，再补 `docs/papers/<name>.md`。
+4. 对应的测试覆盖或至少 forward regression。
+5. `docs/experiments.md` 里的实验清单与验证记录。
 
-如果只是做更快的链路检查，可以像下面这样临时缩短轮数：
+如果只是概念草案而不是可执行实验包，可以像 `config/gen/symbiosis` 一样保留在目录里，但不要把它写进“当前可执行实验包”列表。
 
-```python
-from config.gen.oo import EXPERIMENT
-from taac2026.train import run_training
+## 图表更新
 
-experiment = EXPERIMENT.clone()
-experiment.train.epochs = 1
-experiment.train.output_dir = "outputs/smoke/oo_quickcheck"
-run_training(experiment)
+当前图表逻辑分两层：
+
+1. `src/taac2026/reporting/model_performance_plot.py` 负责读取 `summary.json`、回退 `docs/experiments.md`、合并 optuna trial，并执行实际渲染。
+2. `src/taac2026/application/reporting/cli.py` 提供正式 CLI，负责仓库默认路径和命令行参数。
+
+重画仓库根目录 `figures/` 下的两张图：
+
+```bash
+uv run taac-plot-model-performance --x-metric size
+uv run taac-plot-model-performance --x-metric compute
 ```
 
-## 输出文件
+## 文档站本地预览
 
-每次训练会在输出目录下写四类主要产物：
+这个仓库现在改为基于 Material for MkDocs 组织文档，最小预览命令是：
 
-```text
-best.pt
-summary.json
-training_curves.json
-training_curves.png
+```bash
+uv run --with mkdocs-material mkdocs serve
 ```
 
-其中：
+做构建校验时使用：
 
-1. `best.pt` 保存当前最佳 epoch 的模型参数和指标。
-2. `summary.json` 保存最佳 AUC、PR-AUC、Brier、logloss、latency、`model_profile`，以及 `compute_profile`。其中 `model_profile` 是单次验证前向的 profile batch size、TFLOPs/批次、每样本 FLOPs 与参数量 MB；`compute_profile` 是按单次训练步 / 验证前向 profile 放大的完整训练总算力估算。
-3. `training_curves.json` 保存逐 epoch 的 train loss、val loss 与 val AUC。
-4. `training_curves.png` 会在每个 epoch 结束后由 matplotlib 覆盖刷新，直观显示 train loss、val loss 和 val AUC 的变化折线。
+```bash
+uv run --with mkdocs-material mkdocs build --strict
+```
 
-## 当前未覆盖内容
+## GitHub Pages 自动发布
+
+仓库现在带有 `.github/workflows/deploy-docs.yml`：
+
+1. 每次 push 到 `main`，都会自动构建文档站。
+2. 构建成功后，会自动把 `site/` 发布到 GitHub Pages。
+3. 也可以在 Actions 页手动触发一次 `Deploy Docs`。
+
+第一次启用时，还需要在 GitHub 仓库设置里把 Pages 的 Source 切换为 `GitHub Actions`。
+
+## 当前 CLI 的日志与终端行为
+
+当前 CLI 统一走 `rich + loguru`：
+
+1. 日志走 `loguru`，输出到 Rich Console。
+2. 训练、搜索和 batch 评估进度条走 `rich.progress`。
+3. `--json` 这类机器可读输出仍保持纯文本 JSON，不混入彩色日志。
+
+## 当前不该继续写进文档的内容
 
 下面这些内容不在当前分支实现范围内：
 
@@ -166,4 +109,4 @@ training_curves.png
 3. 可视化、EDA、聚类分析 CLI。
 4. truncation sweep / feature engineering 专用脚本入口。
 
-如果后续这些能力重新回到主分支，文档需要基于实际代码重新补齐，而不是继续沿用旧命令说明。
+如果后续这些能力重新回到主分支，再基于实际代码补齐。

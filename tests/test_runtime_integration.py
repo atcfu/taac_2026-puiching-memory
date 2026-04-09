@@ -2,19 +2,27 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from taac2026.config import ModelConfig, TrainConfig
-from taac2026.evaluate import evaluate_checkpoint
-from taac2026.experiment_loader import load_experiment_package
-from taac2026.folder_experiment import FolderExperiment
-from taac2026.runtime import Arbiter, Blackboard, Layer, LayerStack, Packet
-from taac2026.train import run_training
-from tests.training_stack_support import (
+import pytest
+
+from taac2026.application.evaluation.service import evaluate_checkpoint
+from taac2026.application.training.service import run_training
+from taac2026.domain.config import ModelConfig, TrainConfig
+from taac2026.domain.experiment import ExperimentSpec
+from taac2026.domain.runtime import Arbiter, Blackboard, Layer, LayerStack, Packet
+from taac2026.infrastructure.experiments.loader import load_experiment_package
+from tests.support import (
     TestWorkspace,
     build_local_data_pipeline,
     build_local_loss_stack,
     build_local_model_component,
     build_local_optimizer_component,
+    create_test_workspace,
 )
+
+
+@pytest.fixture
+def test_workspace(tmp_path: Path) -> TestWorkspace:
+    return create_test_workspace(tmp_path)
 
 
 def test_blackboard_and_arbiter_gate_optional_layers() -> None:
@@ -43,7 +51,7 @@ def test_blackboard_and_arbiter_gate_optional_layers() -> None:
 
 
 def test_folder_experiment_clone_keeps_settings_isolated(test_workspace: TestWorkspace) -> None:
-    experiment = FolderExperiment(
+    experiment = ExperimentSpec(
         name="clone_test",
         data=test_workspace.data_config,
         model=ModelConfig(name="clone_test", **test_workspace.model_kwargs),
@@ -81,8 +89,10 @@ def test_experiment_package_runs_end_to_end_with_visualization_switch(test_works
     assert summary is not None
     assert "best_val_auc" in summary
     assert "model_profile" in summary
+    assert "inference_profile" in summary
     assert "compute_profile" in summary
     assert summary["model_profile"]["parameter_size_mb"] > 0
+    assert summary["inference_profile"]["estimated_end_to_end_inference_seconds"] >= 0
     assert summary["compute_profile"]["estimated_end_to_end_tflops_total"] > 0
     assert (Path(experiment.train.output_dir) / "summary.json").exists()
     assert (Path(experiment.train.output_dir) / "training_curves.json").exists()
@@ -90,3 +100,17 @@ def test_experiment_package_runs_end_to_end_with_visualization_switch(test_works
     assert (Path(experiment.train.output_dir) / "best.pt").exists()
     assert evaluation_path.exists()
     assert payload["model_name"] == "temp_experiment"
+
+
+def test_run_training_is_reproducible_for_same_seed(test_workspace: TestWorkspace) -> None:
+    experiment_path = test_workspace.write_experiment_package()
+    experiment_a = load_experiment_package(experiment_path)
+    experiment_b = load_experiment_package(experiment_path)
+    experiment_a.train.output_dir = str(test_workspace.root / "repro_a")
+    experiment_b.train.output_dir = str(test_workspace.root / "repro_b")
+
+    summary_a = run_training(experiment_a)
+    summary_b = run_training(experiment_b)
+
+    assert summary_a["best_val_auc"] == summary_b["best_val_auc"]
+    assert summary_a["metrics"]["auc"] == summary_b["metrics"]["auc"]
