@@ -12,9 +12,14 @@ icon: material/rocket-launch-outline
 仓库基于 `uv` 管理环境，依赖事实来源是 `pyproject.toml` 与 `uv.lock`。
 
 ```bash
-uv python install 3.14
+uv python install 3.13
 uv sync --locked
 ```
+
+!!! info "国内镜像与锁文件一致性"
+    仓库在 `pyproject.toml` 里固定了 `uv` 的 canonical 默认索引，用来保证 `uv.lock` 在本机和 CI 间保持一致。
+    如果你的机器全局把 `uv` 换到了国内镜像，直接执行 `uv sync --locked` 仍会按项目配置工作；不要再额外传 `--default-index` 或 `--index-url` 指向镜像，否则 `uv` 会认为 `uv.lock` 需要更新。
+    如果只是想加速下载，优先使用系统代理、透明代理或企业缓存代理；如果你确实临时用镜像执行过 `uv lock`，提交前请运行 `uv lock --default-index https://pypi.org/simple --python 3.13` 把锁文件归一回仓库基线。
 
 !!! info "PyTorch 轮子来源"
     Linux 环境下，`torch` 通过 `pyproject.toml` 的 uv source 固定到 PyTorch 官方 `cu128` 索引。也就是说，这里的环境同步会安装 CUDA 12.8 轮子，而不是继续跟随最新版默认索引。

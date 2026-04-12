@@ -7,7 +7,7 @@ name = "taac2026"
 version = "0.1.0"
 description = "TAAC 2026 experiment workspace"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
 	"loguru>=0.7",
 	"matplotlib>=3.10",
@@ -23,6 +23,11 @@ dependencies = [
 torch = [
 	{ index = "pytorch-cu128", marker = "platform_system == 'Linux'" },
 ]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
 
 [[tool.uv.index]]
 name = "pytorch-cu128"

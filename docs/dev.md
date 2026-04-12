@@ -106,6 +106,12 @@ uv run --no-project --isolated --with zensical zensical build --clean
 3. 两层测试会在同一条流水线里累积 coverage，并执行 `pyproject.toml` 里配置的 coverage gate。
 4. coverage XML 会以 `coverage-xml` artifact 名称上传，方便后续接可视化或外部服务。
 
+锁文件与索引约定：
+
+1. 仓库在 `pyproject.toml` 里固定 canonical 默认索引，提交到仓库的 `uv.lock` 以这个索引为准。
+2. CI 与本地回归默认都应直接执行 `uv lock --check`、`uv sync --locked`，不要额外传 `--default-index` 或 `--index-url` 指向国内镜像，否则会把锁文件判成过期。
+3. 如果只是想加速下载，优先使用系统代理、透明代理或企业缓存代理；如果你临时用镜像重锁了，提交前必须用 `uv lock --default-index https://pypi.org/simple --python 3.13` 归一化 `uv.lock`。
+
 这条 workflow 只负责 CI 测试，不负责文档构建或 GitHub Pages 发布。
 
 ## GitHub Pages 自动发布
