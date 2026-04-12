@@ -5,6 +5,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Puiching-Memory/TAAC_2026/actions/workflows/ci.yml">
+    <img src="https://github.com/Puiching-Memory/TAAC_2026/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/PyTorch-2.6%2B-EE4C2C.svg" alt="PyTorch">
@@ -60,7 +63,7 @@
 ## 快速开始
 
 ```bash
-uv python install 3.14
+uv python install 3.13
 uv sync --locked
 
 # 训练 starter baseline
@@ -73,9 +76,15 @@ uv run taac-search --experiment config/gen/baseline --trials 20
 # 评估默认输出目录中的 best.pt；single 模式始终只评估一个实验/一个 checkpoint
 uv run taac-evaluate single --experiment config/gen/baseline
 
+仓库在 `pyproject.toml` 里固定了 `uv` 的 canonical 默认索引，用来保证 `uv.lock` 在本机和 CI 间保持一致。
+如果你的机器全局把 `uv` 换到国内镜像，普通 `uv sync --locked` 仍会按项目配置工作；不要再额外传 `--default-index` 或 `--index-url` 指向镜像，否则 `uv` 会判定 `uv.lock` 需要更新。
+如果只是想加速下载，优先使用系统代理、透明代理或企业缓存代理；如果你确实临时用镜像做过一次重锁，提交前请执行 `uv lock --default-index https://pypi.org/simple --python 3.13` 把锁文件归一回仓库基线。
+
 # 跑完整训练栈回归
 uv run pytest tests -q
 ```
+
+更细的测试分层、Property/Fault/Recovery 回归入口和模块改动后的最小复核集合，见 `TESTING.md`。
 
 ## 当前独立实验包
 

@@ -79,7 +79,7 @@ hide:
 === "第一次跑通训练链路"
 
     ```bash
-    uv python install 3.14
+    uv python install 3.13
     uv sync --locked
 
     uv run taac-train --experiment config/gen/baseline
