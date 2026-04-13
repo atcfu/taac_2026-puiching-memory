@@ -14,6 +14,7 @@ UNIT_TEST_FILES = {
     "test_payload.py",
     "test_profiling_unit.py",
     "test_runtime_optimization.py",
+    "test_schema_contract.py",
     "test_search_trial.py",
     "test_search_worker.py",
     "test_test_collection.py",

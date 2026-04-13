@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-DEFAULT_SEQUENCE_NAMES = ("action_seq", "content_seq", "item_seq")
+DEFAULT_SEQUENCE_NAMES = ("domain_a", "domain_b", "domain_c", "domain_d")
 DEFAULT_MAX_PARAMETER_BYTES = 3 * 1024 * 1024 * 1024
 DEFAULT_MAX_END_TO_END_INFERENCE_SECONDS = 180.0
 

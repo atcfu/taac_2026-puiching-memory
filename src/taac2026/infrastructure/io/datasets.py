@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-PREFERRED_PARQUET_NAME = "sample_data.parquet"
+PREFERRED_PARQUET_NAME = "demo_1000.parquet"
 
 
 def _read_ref_revision(ref_path: Path) -> str | None:

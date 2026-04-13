@@ -26,26 +26,16 @@ PADDING_TOKEN_ID = 0
 TIMESTAMP_FEATURE_ID = 99
 TIME_GAP_BUCKET_COUNT = 64
 AUTHOR_TOKEN_COUNT = 2
-SEQUENCE_TIMESTAMP_FEATURE_IDS = {
-	"action_seq": 28,
-	"content_seq": 41,
-	"item_seq": 29,
+DOMAIN_COLUMN_PREFIXES: dict[str, str] = {
+	"domain_a": "domain_a_seq_",
+	"domain_b": "domain_b_seq_",
+	"domain_c": "domain_c_seq_",
+	"domain_d": "domain_d_seq_",
 }
-SEQUENCE_POST_FEATURE_IDS = {
-	"action_seq": 25,
-	"content_seq": 44,
-	"item_seq": 49,
-}
-SEQUENCE_AUTHOR_FEATURE_IDS = {
-	"action_seq": (21, 20),
-	"content_seq": (45, 46),
-	"item_seq": (31, 36),
-}
-SEQUENCE_ACTION_FEATURE_IDS = {
-	"action_seq": (19, 26, 27),
-	"content_seq": (42, 43, 48),
-	"item_seq": (30, 34, 35),
-}
+SEQUENCE_TIMESTAMP_FEATURE_IDS: dict[str, int] = {}
+SEQUENCE_POST_FEATURE_IDS: dict[str, int] = {}
+SEQUENCE_AUTHOR_FEATURE_IDS: dict[str, tuple[int, ...]] = {}
+SEQUENCE_ACTION_FEATURE_IDS: dict[str, tuple[int, ...]] = {}
 
 
 @dataclass(slots=True)
@@ -122,52 +112,56 @@ def _token_id(signature: str, vocab_size: int) -> int:
 	return (stable_hash64(signature) % (vocab_size - 1)) + 1
 
 
-def _iter_features(value: Any) -> Iterable[dict[str, Any]]:
+def _iter_int_features(row: dict[str, Any], prefix: str) -> Iterable[tuple[int, Any]]:
+	"""Yield ``(feature_id, value)`` for flat integer feature columns."""
+	for col_name, value in row.items():
+		if not col_name.startswith(prefix):
+			continue
+		try:
+			fid = int(col_name[len(prefix):])
+		except (ValueError, TypeError):
+			continue
+		if value is not None:
+			yield fid, value
+
+
+def _iter_dense_features(row: dict[str, Any], prefix: str) -> Iterable[tuple[int, list[float]]]:
+	"""Yield ``(feature_id, float_array)`` for flat dense feature columns."""
+	for col_name, value in row.items():
+		if not col_name.startswith(prefix):
+			continue
+		try:
+			fid = int(col_name[len(prefix):])
+		except (ValueError, TypeError):
+			continue
+		if value is not None and isinstance(value, list):
+			yield fid, [float(v) for v in value if v is not None]
+
+
+def _flat_numeric_value(value: Any) -> float:
+	"""Extract a single numeric value from a flat column value."""
 	if value is None:
-		return []
-	if isinstance(value, list):
-		return [item for item in value if isinstance(item, dict)]
-	if isinstance(value, dict):
-		return [value]
-	return []
-
-
-def _array_values(feature: dict[str, Any], key: str) -> list[float]:
-	values = feature.get(key) or []
-	if not isinstance(values, list):
-		return []
-	return [float(item) for item in values if item is not None]
-
-
-def _numeric_feature_value(feature: dict[str, Any]) -> float:
-	if feature.get("int_value") is not None:
-		return float(feature["int_value"])
-	if feature.get("float_value") is not None:
-		return float(feature["float_value"])
-	if feature.get("int_array") is not None:
-		values = _array_values(feature, "int_array")
-		return float(np.mean(values)) if values else 0.0
-	if feature.get("float_array") is not None:
-		values = _array_values(feature, "float_array")
-		return float(np.mean(values)) if values else 0.0
+		return 0.0
+	if isinstance(value, (int, float)):
+		return float(value)
+	if isinstance(value, list) and value:
+		return float(np.mean([float(v) for v in value if v is not None])) if value else 0.0
 	return 0.0
 
 
-def _feature_signature(prefix: str, feature: dict[str, Any]) -> str:
-	feature_id = feature.get("feature_id", "unknown")
-	if feature.get("int_value") is not None:
-		return f"{prefix}|{feature_id}|iv|{int(feature['int_value'])}"
-	if feature.get("float_value") is not None:
-		return f"{prefix}|{feature_id}|fv|{float(feature['float_value']):.4f}"
-	if feature.get("int_array") is not None:
-		values = _array_values(feature, "int_array")[:4]
-		joined = ",".join(str(int(item)) for item in values)
-		return f"{prefix}|{feature_id}|ia|{joined}|n={len(values)}"
-	if feature.get("float_array") is not None:
-		values = _array_values(feature, "float_array")[:4]
-		joined = ",".join(f"{item:.3f}" for item in values)
-		return f"{prefix}|{feature_id}|fa|{joined}|n={len(values)}"
-	return f"{prefix}|{feature_id}|empty"
+def _flat_feature_signature(prefix: str, fid: int, value: Any) -> str:
+	"""Build a deterministic signature for a flat column feature."""
+	if isinstance(value, list):
+		if value and isinstance(value[0], float):
+			vals = [f"{v:.3f}" for v in value[:4]]
+			return f"{prefix}|{fid}|fa|{','.join(vals)}|n={len(value)}"
+		vals = [str(int(v)) for v in value[:4]]
+		return f"{prefix}|{fid}|ia|{','.join(vals)}|n={len(value)}"
+	if isinstance(value, (int, np.integer)):
+		return f"{prefix}|{fid}|iv|{int(value)}"
+	if isinstance(value, float):
+		return f"{prefix}|{fid}|fv|{value:.4f}"
+	return f"{prefix}|{fid}|empty"
 
 
 def _bucket_gap(reference_timestamp: int, event_timestamp: int | None) -> int:
@@ -179,15 +173,25 @@ def _bucket_gap(reference_timestamp: int, event_timestamp: int | None) -> int:
 	return min(TIME_GAP_BUCKET_COUNT - 1, int(math.log2(gap + 1)))
 
 
-def _sequence_feature_arrays(sequence_payload: Any) -> dict[int, list[int]]:
+def _sequence_feature_arrays_from_row(row: dict[str, Any], domain_name: str) -> dict[int, list[int]]:
+	"""Extract ``{feature_id: [int_values]}`` for a domain from flat columns."""
+	prefix = DOMAIN_COLUMN_PREFIXES.get(domain_name, f"{domain_name}_seq_")
 	arrays: dict[int, list[int]] = {}
-	for feature in _iter_features(sequence_payload):
-		if feature.get("int_array") is None:
+	for col_name, value in row.items():
+		if not col_name.startswith(prefix):
 			continue
-		feature_id = int(feature.get("feature_id", -1))
-		values = [int(item) for item in feature.get("int_array", []) if item is not None]
+		try:
+			fid = int(col_name[len(prefix):])
+		except (ValueError, TypeError):
+			continue
+		if value is None:
+			continue
+		if isinstance(value, list):
+			values = [int(v) for v in value if v is not None]
+		else:
+			values = [int(value)]
 		if values:
-			arrays[feature_id] = values
+			arrays[fid] = values
 	return arrays
 
 
@@ -316,30 +320,26 @@ def _role_token_array(
 
 def _user_tokens_from_row(row: dict[str, Any], config: DataConfig, vocab_size: int) -> tuple[np.ndarray, np.ndarray]:
 	signatures = [f"user_id|{row.get('user_id', '0')}"]
-	for feature in _iter_features(row.get("user_feature")):
-		signatures.append(_feature_signature("user", feature))
+	for fid, value in _iter_int_features(row, "user_int_feats_"):
+		signatures.append(_flat_feature_signature("user", fid, value))
 	return _role_token_array(signatures, config.max_feature_tokens, "user", vocab_size)
 
 
 def _dense_features_from_row(row: dict[str, Any], config: DataConfig) -> np.ndarray:
 	dense = np.zeros(config.dense_feature_dim, dtype=np.float32)
-	groups = (
-		("user", row.get("user_feature")),
-		("context", row.get("context_feature")),
-		("item", row.get("item_feature")),
-		("cross", row.get("cross_feature")),
-	)
-	for group_name, payload in groups:
-		for feature in _iter_features(payload):
-			feature_id = feature.get("feature_id", 0)
-			bucket = stable_hash64(f"dense|{group_name}|{feature_id}") % config.dense_feature_dim
-			dense[bucket] += np.float32(math.tanh(_numeric_feature_value(feature) / 100.0))
-			if feature.get("float_array") is not None:
-				for offset, value in enumerate(_array_values(feature, "float_array")[:4]):
-					dense[(bucket + offset) % config.dense_feature_dim] += np.float32(value)
+	for fid, value in _iter_int_features(row, "user_int_feats_"):
+		bucket = stable_hash64(f"dense|user|{fid}") % config.dense_feature_dim
+		dense[bucket] += np.float32(math.tanh(_flat_numeric_value(value) / 100.0))
+	for fid, float_arr in _iter_dense_features(row, "user_dense_feats_"):
+		bucket = stable_hash64(f"dense|user_dense|{fid}") % config.dense_feature_dim
+		for offset, val in enumerate(float_arr[:4]):
+			dense[(bucket + offset) % config.dense_feature_dim] += np.float32(val)
+	for fid, value in _iter_int_features(row, "item_int_feats_"):
+		bucket = stable_hash64(f"dense|item|{fid}") % config.dense_feature_dim
+		dense[bucket] += np.float32(math.tanh(_flat_numeric_value(value) / 100.0))
 	dense[-3] = np.float32(math.tanh((row.get("timestamp", 0) or 0) / 1.0e10))
-	dense[-2] = np.float32(len(list(_iter_features(row.get("user_feature")))) / max(1, config.max_feature_tokens))
-	dense[-1] = np.float32(len(list(_iter_features(row.get("context_feature")))) / max(1, config.max_feature_tokens))
+	dense[-2] = np.float32(sum(1 for _ in _iter_int_features(row, "user_int_feats_")) / max(1, config.max_feature_tokens))
+	dense[-1] = np.float32(sum(1 for _ in _iter_int_features(row, "item_int_feats_")) / max(1, config.max_feature_tokens))
 	return dense
 
 
@@ -347,8 +347,8 @@ def _context_tokens_from_row(row: dict[str, Any], config: DataConfig, vocab_size
 	timestamp = int(row.get("timestamp", 0) or 0)
 	hour_bucket = (timestamp // 3600) % 24
 	signatures = [f"request_hour|{hour_bucket}"]
-	for feature in _iter_features(row.get("context_feature")):
-		signatures.append(_feature_signature("context", feature))
+	for fid, value in _iter_int_features(row, "item_int_feats_"):
+		signatures.append(_flat_feature_signature("context", fid, value))
 	return _role_token_array(signatures, config.max_feature_tokens, "context", vocab_size)
 
 
@@ -357,10 +357,10 @@ def _candidate_tokens_from_row(
 	config: DataConfig,
 	vocab_size: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-	item_features = list(_iter_features(row.get("item_feature")))
+	item_features = list(_iter_int_features(row, "item_int_feats_"))
 	post_signatures = [f"item_id|{row.get('item_id', 0)}"]
-	for feature in item_features[: max(0, config.max_event_features - 1)]:
-		post_signatures.append(_feature_signature("item_post", feature))
+	for fid, value in item_features[: max(0, config.max_event_features - 1)]:
+		post_signatures.append(_flat_feature_signature("item_post", fid, value))
 	candidate_post_tokens, candidate_post_mask = _role_token_array(
 		post_signatures,
 		max(1, config.max_event_features),
@@ -370,10 +370,10 @@ def _candidate_tokens_from_row(
 
 	ranked_features = sorted(
 		item_features,
-		key=lambda feature: (abs(_numeric_feature_value(feature)), int(feature.get("feature_id", 0))),
+		key=lambda pair: (abs(_flat_numeric_value(pair[1])), pair[0]),
 		reverse=True,
 	)
-	author_signatures = [_feature_signature("item_author", feature) for feature in ranked_features[:AUTHOR_TOKEN_COUNT]]
+	author_signatures = [_flat_feature_signature("item_author", fid, value) for fid, value in ranked_features[:AUTHOR_TOKEN_COUNT]]
 	if not author_signatures:
 		author_signatures = [f"item_author|missing|{row.get('item_id', 0)}"]
 	candidate_author_tokens, candidate_author_mask = _role_token_array(
@@ -395,17 +395,16 @@ def _candidate_tokens_from_row(
 	)
 
 
-def _sequence_events_from_payload(
+def _sequence_events_from_arrays(
 	sequence_name: str,
 	sequence_index: int,
-	sequence_payload: Any,
+	arrays: dict[int, list[int]],
 	config: DataConfig,
 	vocab_size: int,
 	reference_timestamp: int,
 ) -> tuple[list[_SequenceEvent], np.ndarray, np.ndarray]:
 	sequence_tokens = np.zeros(config.max_seq_len, dtype=np.int64)
 	sequence_mask = np.zeros(config.max_seq_len, dtype=np.bool_)
-	arrays = _sequence_feature_arrays(sequence_payload)
 	if not arrays:
 		return [], sequence_tokens, sequence_mask
 
@@ -491,14 +490,14 @@ def _history_and_sequence_tokens_from_row(
 	history_time_gap = np.zeros(history_capacity, dtype=np.int64)
 	history_group_ids = np.zeros(history_capacity, dtype=np.int64)
 	reference_timestamp = int(row.get("timestamp", 0) or 0)
-	seq_feature = row.get("seq_feature") or {}
 	merged_events: list[_SequenceEvent] = []
 
 	for sequence_index, sequence_name in enumerate(config.sequence_names):
-		events, sequence_row_tokens, sequence_row_mask = _sequence_events_from_payload(
+		arrays = _sequence_feature_arrays_from_row(row, sequence_name)
+		events, sequence_row_tokens, sequence_row_mask = _sequence_events_from_arrays(
 			sequence_name=sequence_name,
 			sequence_index=sequence_index,
-			sequence_payload=(seq_feature or {}).get(sequence_name),
+			arrays=arrays,
 			config=config,
 			vocab_size=vocab_size,
 			reference_timestamp=reference_timestamp,
@@ -564,7 +563,8 @@ def _encode_row(
 		vocab_size,
 	)
 	dense_features = _dense_features_from_row(row, config)
-	label = 1.0 if any(int(item.get("action_type", -1)) == config.label_action_type for item in _iter_features(row.get("label"))) else 0.0
+	label_type = int(row.get("label_type", 0) or 0)
+	label = 1.0 if label_type == config.label_action_type else 0.0
 	user_index = stable_hash64(f"user|{row.get('user_id', '0')}")
 	item_index = stable_hash64(f"item|{row.get('item_id', 0)}")
 	item_logq = item_logq_lookup.get(item_index, default_item_logq)

@@ -119,12 +119,13 @@ graph TD
 
 当前使用 HuggingFace 上的样例数据集 [`TAAC2026/data_sample_1000`](https://huggingface.co/datasets/TAAC2026/data_sample_1000)。
 
-**数据格式：**
+**数据格式（扁平列布局）：**
 
-- **用户行为序列**：`user_id` + 时间戳排序的 `(item_id, action_type)` 列表
-- **用户/物品/上下文特征**：`feature_id` → `int_value` / `int_array` / `float_array`
-- **交叉特征**：固定长度浮点向量（稠密）
+- **ID 与标签**：`user_id`、`item_id`、`label_type`（int32）、`label_time`、`timestamp`
+- **用户特征**：`user_int_feats_{fid}`（标量/数组整型）、`user_dense_feats_{fid}`（浮点数组）
+- **物品特征**：`item_int_feats_{fid}`（标量/数组整型）
+- **域行为序列**：`domain_{a,b,c,d}_seq_{fid}`（`list<int64>`，4 个行为域共 45 列）
 
-**标签**：`action_type == 2`（点击）作为二分类目标
+**标签**：`label_type == 2`（点击）作为二分类目标
 
 **批处理张量**（`BatchTensors`）包含：候选 token、上下文 token、历史序列 token、掩码、稠密特征、标签、分组 ID。

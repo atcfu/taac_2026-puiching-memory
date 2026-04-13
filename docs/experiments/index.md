@@ -48,6 +48,7 @@
 - `label_action_type = 2`（点击作为正样本）
 - `dense_feature_dim = 16`
 - `vocab_size = 131072`
+- `sequence_names = ("domain_a", "domain_b", "domain_c", "domain_d")`（4 个行为域）
 
 ## 按架构分类
 

@@ -16,18 +16,30 @@ from taac2026.domain.experiment import ExperimentSpec
 from taac2026.domain.types import BatchTensors
 
 
-def build_feature(
-    feature_id: int,
-    *,
-    int_value: int | None = None,
-    int_array: list[int] | None = None,
-) -> dict[str, object]:
-    payload: dict[str, object] = {"feature_id": feature_id}
-    if int_value is not None:
-        payload["int_value"] = int_value
-    if int_array is not None:
-        payload["int_array"] = int_array
-    return payload
+# ---------------------------------------------------------------------------
+# Schema contract: authoritative column-name expectations for the flat-column
+# dataset format.  When the upstream HuggingFace schema changes, update these
+# constants FIRST — any mismatch with ``build_row()`` or ``data.py`` will make
+# the schema-contract tests fail immediately.
+# ---------------------------------------------------------------------------
+
+EXPECTED_SCALAR_COLUMNS: frozenset[str] = frozenset({
+    "user_id",
+    "item_id",
+    "timestamp",
+    "label_type",
+    "label_time",
+})
+
+EXPECTED_USER_INT_PREFIX = "user_int_feats_"
+EXPECTED_ITEM_INT_PREFIX = "item_int_feats_"
+
+EXPECTED_DOMAIN_PREFIXES: dict[str, str] = {
+    "domain_a": "domain_a_seq_",
+    "domain_b": "domain_b_seq_",
+    "domain_c": "domain_c_seq_",
+    "domain_d": "domain_d_seq_",
+}
 
 
 def build_row(index: int, timestamp: int, positive: bool, user_id: str, item_id: int) -> dict[str, object]:
@@ -35,24 +47,25 @@ def build_row(index: int, timestamp: int, positive: bool, user_id: str, item_id:
         "user_id": user_id,
         "item_id": item_id,
         "timestamp": timestamp,
-        "label": [{"action_type": 2 if positive else 1}],
-        "item_feature": [build_feature(70, int_value=(index % 3) + 1)],
-        "user_feature": [build_feature(8, int_value=(index % 2) + 1)],
-        "context_feature": [build_feature(17, int_value=(index % 4) + 1)],
-        "seq_feature": {
-            "action_seq": [
-                build_feature(11, int_array=[index + 1, index + 2, index + 3]),
-                build_feature(99, int_array=[timestamp - 30, timestamp - 20, timestamp - 10]),
-            ],
-            "content_seq": [
-                build_feature(12, int_array=[index + 4, index + 5, index + 6]),
-                build_feature(99, int_array=[timestamp - 35, timestamp - 25, timestamp - 15]),
-            ],
-            "item_seq": [
-                build_feature(13, int_array=[index + 7, index + 8, index + 9]),
-                build_feature(99, int_array=[timestamp - 40, timestamp - 30, timestamp - 20]),
-            ],
-        },
+        "label_type": 2 if positive else 1,
+        "label_time": timestamp,
+        # User int features
+        "user_int_feats_8": (index % 2) + 1,
+        # Item int features
+        "item_int_feats_70": (index % 3) + 1,
+        "item_int_feats_17": (index % 4) + 1,
+        # Domain A sequences (post-like + timestamp)
+        "domain_a_seq_11": [index + 1, index + 2, index + 3],
+        "domain_a_seq_99": [timestamp - 30, timestamp - 20, timestamp - 10],
+        # Domain B sequences (post-like + timestamp)
+        "domain_b_seq_12": [index + 4, index + 5, index + 6],
+        "domain_b_seq_99": [timestamp - 35, timestamp - 25, timestamp - 15],
+        # Domain C sequences (post-like + timestamp)
+        "domain_c_seq_13": [index + 7, index + 8, index + 9],
+        "domain_c_seq_99": [timestamp - 40, timestamp - 30, timestamp - 20],
+        # Domain D sequences (post-like + timestamp)
+        "domain_d_seq_14": [index + 10, index + 11, index + 12],
+        "domain_d_seq_99": [timestamp - 45, timestamp - 35, timestamp - 25],
     }
 
 
@@ -64,31 +77,25 @@ def write_dataset(path: Path, rows: list[dict[str, Any]]) -> None:
 def build_edge_case_rows() -> list[dict[str, object]]:
     base_timestamp = 1_770_000_000
     sparse_row = build_row(0, base_timestamp + 90, True, "u_sparse", 301)
-    sparse_row["user_feature"] = None
-    sparse_row["context_feature"] = None
-    sparse_row["item_feature"] = None
-    sparse_row["seq_feature"] = {}
+    for key in list(sparse_row.keys()):
+        if key.startswith(("user_int_feats_", "item_int_feats_", "domain_")):
+            sparse_row[key] = None
 
     short_sequence_row = build_row(1, base_timestamp + 120, False, "u_short", 302)
-    short_sequence_row["seq_feature"] = {
-        "action_seq": [
-            build_feature(11, int_array=[41]),
-            build_feature(99, int_array=[base_timestamp + 30]),
-        ],
-    }
+    for key in list(short_sequence_row.keys()):
+        if key.startswith("domain_"):
+            short_sequence_row[key] = None
+    short_sequence_row["domain_a_seq_11"] = [41]
+    short_sequence_row["domain_a_seq_99"] = [base_timestamp + 30]
 
     long_sequence_row = build_row(2, base_timestamp + 400, True, "u_long", 301)
-    long_sequence_row["seq_feature"]["action_seq"] = [
-        build_feature(11, int_array=list(range(100, 108))),
-        build_feature(99, int_array=[base_timestamp + offset for offset in range(8)]),
-    ]
-    long_sequence_row["seq_feature"]["content_seq"] = [
-        build_feature(12, int_array=list(range(200, 208))),
-        build_feature(99, int_array=[base_timestamp - 50 + offset for offset in range(8)]),
-    ]
+    long_sequence_row["domain_a_seq_11"] = list(range(100, 108))
+    long_sequence_row["domain_a_seq_99"] = [base_timestamp + offset for offset in range(8)]
+    long_sequence_row["domain_b_seq_12"] = list(range(200, 208))
+    long_sequence_row["domain_b_seq_99"] = [base_timestamp - 50 + offset for offset in range(8)]
 
     cold_item_row = build_row(3, base_timestamp + 500, False, "u_cold", 999)
-    cold_item_row["label"] = []
+    cold_item_row["label_type"] = 0
     return [sparse_row, short_sequence_row, long_sequence_row, cold_item_row]
 
 
@@ -436,10 +443,13 @@ def prepare_experiment(experiment, test_workspace: TestWorkspace):
 
 __all__ = [
     "DisabledAuxiliaryLoss",
+    "EXPECTED_DOMAIN_PREFIXES",
+    "EXPECTED_ITEM_INT_PREFIX",
+    "EXPECTED_SCALAR_COLUMNS",
+    "EXPECTED_USER_INT_PREFIX",
     "TestWorkspace",
     "TinyExperimentModel",
     "build_edge_case_rows",
-    "build_feature",
     "build_local_data_pipeline",
     "build_local_loss_stack",
     "build_local_model_component",

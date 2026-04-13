@@ -121,44 +121,25 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 
 本次比赛发布的数据集经过完全匿名化处理，不反映腾讯广告平台的实际生产特性。
 
-我们的数据集是一个基于真实广告日志构建的大规模工业级数据集，包含两个主要组成部分：(1) 用户行为序列 和 (2) 非序列多字段特征。
+我们的数据集是一个基于真实广告日志构建的大规模工业级数据集，采用扁平列布局（flat column layout），所有特征作为独立的顶级列存储在 Parquet 文件中。数据集包含 120 列，分为以下几类：
 
-用户行为序列 包含用户与物品之间的交互事件（如曝光、点击、转化），每个事件都附带时间戳和行为类型等附加信息。多字段特征 包括用户属性、物品属性、上下文信号以及交叉特征。
+- **ID 与标签**（5 列）：`user_id`、`item_id`、`label_type`、`label_time`、`timestamp`
+- **用户整型特征**（46 列）：`user_int_feats_{fid}` — 标量 `int64` 或 `list<int64>`
+- **用户稠密特征**（10 列）：`user_dense_feats_{fid}` — `list<float>`
+- **物品整型特征**（14 列）：`item_int_feats_{fid}` — 标量 `int64` 或 `list<int64>`
+- **域行为序列特征**（45 列）：`domain_{a,b,c,d}_seq_{fid}` — `list<int64>`，来自 4 个行为域
 
 为确保公平性和保护隐私，所有稀疏特征均以匿名整数ID表示，稠密特征则以固定长度的浮点向量提供。不发布任何原始内容（如文本、图像、URL）或个人身份信息。
 
 此外，我们提供了一些示例样本供参考：
 
-当前示例样本以JSON格式提供，但正式比赛所用数据可能基于此初步版本进行调整，包括格式和实际内容的可能变更。
+> ⚠️ **Update [2026.04.10]**: 示例数据集已更新为扁平列布局格式，特征名已重命名，新增序列特征。请参考最新的 `demo_1000.parquet` 和 HuggingFace 上的 README 获取最新 schema 详情。
 
-**Sequential Data (e.g. one user behavior sequence)**
-```json
-{"user_id": "1", "seq": [{"item_id": 16612, "action_type": 1, "timestamp": 1770564000}, {"item_id": 49638, "action_type": 1, "timestamp": 1770564000}, ..., {"item_id": 173346, "action_type": 3, "timestamp": 1766960100}, ..., {"item_id": 49495, "action_type": 2, "timestamp": 1766576760}, ..., {"item_id": 1753, "action_type": 4, "timestamp": 1766399880}], ...}
-```
-
-**User Features (e.g. one specific user)**
-```json
-[{"feature_id": 10, "feature_value_type": "int_array", "int_array": [1]},      // Marital Status
- {"feature_id": 8, "feature_value_type": "int_value", "int_value": 1},       // Gender
- {"feature_id": 7, "feature_value_type": "int_value", "int_value": 44}, ...] // Age
-```
-
-**Item Features (e.g. one specific item)**
-```json
-[{"feature_id": 70, "feature_value_type": "int_value", "int_value": 2},      // Type
- {"feature_id": 60, "feature_value_type": "int_value", "int_value": 3},      // Category
- {"feature_id": 72, "feature_value_type": "int_value", "int_value": 2}, ...] // Advertiser Type
-```
-
-**Context Features (e.g. one specific session)**
-```json
-[{"feature_id": 17, "feature_value_type": "int_value", "int_value": 3},      // Device Brand
- {"feature_id": 21, "feature_value_type": "int_value", "int_value": 3}, ...] // OS Type
-```
-
-**Cross Features**
-```json
-[{"feature_id": 25, "feature_value_type": "float_array", "float_array": [0.111, 0.057, 0.121, 0.043, -0.066, 0.081, 0.038, 0.105, -0.026, ...]}, ...] // User Embedding
+```python
+import pandas as pd
+df = pd.read_parquet("demo_1000.parquet")
+print(df.shape)       # (1000, 120)
+print(df.columns)     # ['user_id', 'item_id', 'label_type', ...]
 ```
 
 ## Evaluation
@@ -177,7 +158,7 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 
 ## 相关工作
 以下按公开可访问资料整理，优先保留能直接借鉴代码、EDA、方法说明和赛事资料的链接，持续补充。
-调查时间: 2026-04-02
+调查时间: 2026-04-13
 
 **2025届：官方 / 公开代码**  
 1. [TencentAdvertisingAlgorithmCompetition/baseline_2025](https://github.com/TencentAdvertisingAlgorithmCompetition/baseline_2025) 官方 parquet baseline，主体为 SASRec，并附带 faiss-based-ann 检索与 RQ-VAE 扩展入口。  
@@ -201,6 +182,11 @@ https://huggingface.co/datasets/TAAC2026/data_sample_1000
 1. [hun9008/TAAC_DI_Lab_EDA](https://github.com/hun9008/TAAC_DI_Lab_EDA) 对公开 sample parquet 做了较完整的 EDA，包含 label 分布、序列长度、feature 密度和建模建议。  
 2. [https://huggingface.co/datasets/TAAC2026/data_sample_1000](https://huggingface.co/datasets/TAAC2026/data_sample_1000) 官方样例数据页面。  
 3. [https://algo.qq.com/#intro](https://algo.qq.com/#intro) 大赛主页。  
+
+**通用开源框架 / Benchmark**  
+1. [reczoo/FuxiCTR](https://github.com/reczoo/FuxiCTR) CTR 预测开源底座，长处是可配置、可调参与可复现实验，适合快速对照经典 ranking 模型与数据管线。
+2. [meta-recsys/generative-recommenders](https://github.com/meta-recsys/generative-recommenders) Meta 官方 HSTU / Generative Recommenders 代码，包含训练、推理与公开实验脚本，是统一生成式路线的重要工程参考。
+3. [snap-research/GRID](https://github.com/snap-research/GRID) Semantic ID 生成式推荐框架，串起文本 embedding、RQ 式语义 ID 学习与 Transformer 解码，适合后续探索 item-side semantic tokenization。
 
 ## References
 1. InterFormer: Effective Heterogeneous Interaction Learning for Click-Through Rate Prediction. CIKM, 2025.  

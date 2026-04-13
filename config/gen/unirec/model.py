@@ -178,26 +178,18 @@ class GatedFusion(nn.Module):
 
 
 class MixtureOfTransducers(nn.Module):
-	def __init__(self, dim: int, num_heads: int, num_layers: int, dropout: float) -> None:
+	def __init__(self, dim: int, num_heads: int, num_layers: int, dropout: float, num_branches: int) -> None:
 		super().__init__()
-		self.action_branch = BranchTransducer(dim, num_heads, num_layers, dropout)
-		self.content_branch = BranchTransducer(dim, num_heads, num_layers, dropout)
-		self.item_branch = BranchTransducer(dim, num_heads, num_layers, dropout)
-		self.fusion = GatedFusion(dim, 3)
+		self.branches = nn.ModuleList([BranchTransducer(dim, num_heads, num_layers, dropout) for _ in range(num_branches)])
+		self.fusion = GatedFusion(dim, num_branches)
 
 	def forward(
 		self,
-		action_tokens: torch.Tensor,
-		action_mask: torch.Tensor,
-		content_tokens: torch.Tensor,
-		content_mask: torch.Tensor,
-		item_tokens: torch.Tensor,
-		item_mask: torch.Tensor,
+		branch_tokens_list: list[torch.Tensor],
+		branch_mask_list: list[torch.Tensor],
 	) -> torch.Tensor:
-		h_a = self.action_branch(action_tokens, action_mask)
-		h_c = self.content_branch(content_tokens, content_mask)
-		h_s = self.item_branch(item_tokens, item_mask)
-		return self.fusion([h_a, h_c, h_s])
+		outputs = [branch(tokens, mask) for branch, tokens, mask in zip(self.branches, branch_tokens_list, branch_mask_list, strict=True)]
+		return self.fusion(outputs)
 
 
 class UniRecModel(nn.Module):
@@ -247,7 +239,7 @@ class UniRecModel(nn.Module):
 			}
 		)
 		self.field_embedding = nn.Embedding(self.n_feature_tokens + 8, model_config.hidden_dim)
-		self.segment_embedding = nn.Embedding(5, model_config.hidden_dim)
+		self.segment_embedding = nn.Embedding(self.sequence_count + 2, model_config.hidden_dim)
 		self.history_group_embedding = nn.Embedding(self.sequence_count + 1, model_config.hidden_dim, padding_idx=0)
 		self.sequence_id_embedding = nn.Embedding(self.sequence_count + 1, model_config.hidden_dim, padding_idx=0)
 		self.sequence_position_embedding = nn.Embedding(data_config.max_seq_len, model_config.hidden_dim)
@@ -292,7 +284,7 @@ class UniRecModel(nn.Module):
 		self.mot = None
 		self.mot_projection = None
 		if mot_layers > 0:
-			self.mot = MixtureOfTransducers(model_config.hidden_dim, model_config.num_heads, mot_layers, model_config.dropout)
+			self.mot = MixtureOfTransducers(model_config.hidden_dim, model_config.num_heads, mot_layers, model_config.dropout, self.sequence_count)
 			self.mot_projection = nn.Linear(model_config.hidden_dim, model_config.hidden_dim)
 
 		full_layers = model_config.static_layers if model_config.static_layers > 0 else max(1, model_config.num_layers)
@@ -453,15 +445,11 @@ class UniRecModel(nn.Module):
 		event_tokens = self._build_event_tokens(batch)
 		branch_tokens, branch_mask, _ = self._split_history_by_group(batch, event_tokens)
 
-		action_tokens = branch_tokens[:, 0]
-		action_mask = branch_mask[:, 0]
-		content_tokens = branch_tokens[:, 1]
-		content_mask = branch_mask[:, 1]
-		item_tokens = branch_tokens[:, 2]
-		item_mask = branch_mask[:, 2]
+		per_branch_tokens = [branch_tokens[:, i] for i in range(self.sequence_count)]
+		per_branch_mask = [branch_mask[:, i] for i in range(self.sequence_count)]
 
-		all_sequence_tokens = torch.cat([action_tokens, content_tokens, item_tokens], dim=1)
-		all_sequence_mask = torch.cat([action_mask, content_mask, item_mask], dim=1)
+		all_sequence_tokens = torch.cat(per_branch_tokens, dim=1)
+		all_sequence_mask = torch.cat(per_branch_mask, dim=1)
 		query = self.interest_query(item_pool).unsqueeze(1)
 		key = self.interest_key(all_sequence_tokens)
 		value = self.interest_value(all_sequence_tokens)
@@ -475,41 +463,35 @@ class UniRecModel(nn.Module):
 
 		target_token = self.target_fusion(torch.cat([user_pool, item_pool, user_pool * item_pool], dim=-1)).unsqueeze(1)
 
-		sequence_parts = [feature_tokens, action_tokens, content_tokens, item_tokens]
+		sequence_parts = [feature_tokens] + per_branch_tokens
+		special_segment_id = self.sequence_count + 1
 		segment_ids = [
 			torch.zeros(batch.batch_size, self.n_feature_tokens, dtype=torch.long, device=feature_tokens.device),
-			torch.full((batch.batch_size, action_tokens.shape[1]), 1, dtype=torch.long, device=feature_tokens.device),
-			torch.full((batch.batch_size, content_tokens.shape[1]), 2, dtype=torch.long, device=feature_tokens.device),
-			torch.full((batch.batch_size, item_tokens.shape[1]), 3, dtype=torch.long, device=feature_tokens.device),
+		] + [
+			torch.full((batch.batch_size, per_branch_tokens[i].shape[1]), i + 1, dtype=torch.long, device=feature_tokens.device)
+			for i in range(self.sequence_count)
 		]
 		padding_parts = [
 			torch.ones(batch.batch_size, self.n_feature_tokens, dtype=torch.bool, device=feature_tokens.device),
-			action_mask,
-			content_mask,
-			item_mask,
-		]
+		] + list(per_branch_mask)
 
 		if self.mot is not None and self.mot_projection is not None:
 			mot_token = self.mot_projection(
 				self.mot(
-					action_tokens,
-					action_mask,
-					content_tokens,
-					content_mask,
-					item_tokens,
-					item_mask,
+					per_branch_tokens,
+					per_branch_mask,
 				)
 			).unsqueeze(1)
 			sequence_parts.append(mot_token)
-			segment_ids.append(torch.full((batch.batch_size, 1), 4, dtype=torch.long, device=feature_tokens.device))
+			segment_ids.append(torch.full((batch.batch_size, 1), special_segment_id, dtype=torch.long, device=feature_tokens.device))
 			padding_parts.append(torch.ones(batch.batch_size, 1, dtype=torch.bool, device=feature_tokens.device))
 
 		sequence_parts.append(interest_token)
-		segment_ids.append(torch.full((batch.batch_size, 1), 4, dtype=torch.long, device=feature_tokens.device))
+		segment_ids.append(torch.full((batch.batch_size, 1), special_segment_id, dtype=torch.long, device=feature_tokens.device))
 		padding_parts.append(torch.ones(batch.batch_size, 1, dtype=torch.bool, device=feature_tokens.device))
 
 		sequence_parts.append(target_token)
-		segment_ids.append(torch.full((batch.batch_size, 1), 4, dtype=torch.long, device=feature_tokens.device))
+		segment_ids.append(torch.full((batch.batch_size, 1), special_segment_id, dtype=torch.long, device=feature_tokens.device))
 		padding_parts.append(torch.ones(batch.batch_size, 1, dtype=torch.bool, device=feature_tokens.device))
 
 		unified_tokens = torch.cat(sequence_parts, dim=1)
