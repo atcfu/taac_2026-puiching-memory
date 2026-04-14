@@ -10,6 +10,7 @@ UNIT_TEST_FILES = {
     "test_experiment_packages.py",
     "test_metrics.py",
     "test_model_performance_plot.py",
+    "test_model_robustness.py",
     "test_property_based.py",
     "test_payload.py",
     "test_profiling_unit.py",
