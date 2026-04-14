@@ -621,6 +621,7 @@ class UniRecModel(nn.Module):
 					truncated_tokens, partial_sum, _ = self.block_attn_res(
 						layer_idx, truncated_tokens, block_summaries, partial_sum,
 					)
+					truncated_tokens = truncated_tokens * truncated_padding.unsqueeze(-1).float()
 					layer_idx += 1
 					if layer_idx % self.attn_res_block_size == 0:
 						block_summaries.append(partial_sum)
