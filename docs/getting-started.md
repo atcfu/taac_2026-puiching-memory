@@ -1,3 +1,7 @@
+---
+icon: lucide/rocket
+---
+
 # 快速开始
 
 ## 前置要求

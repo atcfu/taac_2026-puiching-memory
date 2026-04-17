@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # UniScaleFormer
 
 **缩放序列建模 + 特征融合**

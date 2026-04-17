@@ -1,3 +1,7 @@
+---
+icon: lucide/blocks
+---
+
 # 架构与概念
 
 ## 工程结构

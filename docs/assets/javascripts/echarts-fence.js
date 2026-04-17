@@ -27,122 +27,99 @@
 
   function clone(o) { return JSON.parse(JSON.stringify(o)) }
 
-  /* ---- theme tokens ---- */
-  var T = {
+  /* Only the document dark/light mode is handled here.
+     Visual colors should come from the chart option or ECharts theme itself. */
+  var TT = {
     dark: {
-      text: "#cdd6f4", subtext: "#a6adc8",
-      axis: "#585b70", split: "#313244",
-      tipBg: "#313244", tipBorder: "#45475a",
+      text: "#cdd6f4",
+      subtext: "#a6adc8",
+      tipBorder: "#45475a",
       link: "#94e2d5",
-      pieBorder: "#1e1e2e",
     },
     light: {
-      text: "#4c4f69", subtext: "#6c6f85",
-      axis: "#bcc0cc", split: "#e6e9ef",
-      tipBg: "#eff1f5", tipBorder: "#ccd0da",
+      text: "#4c4f69",
+      subtext: "#6c6f85",
+      tipBorder: "#ccd0da",
       link: "#176b5e",
-      pieBorder: "#ffffff",
     },
   }
 
-  function tok() { return isDark() ? T.dark : T.light }
+  function tooltipTokens() { return isDark() ? TT.dark : TT.light }
 
-  /* Forcefully inject theme colors into a cloned ECharts option */
-  function applyTheme(opt) {
-    var t = tok()
+  function chartThemeName() {
+    return isDark() ? "dark" : null
+  }
 
-    /* global text */
-    opt.textStyle = opt.textStyle || {}
-    opt.textStyle.color = t.text
-
-    /* title */
-    if (opt.title) {
-      opt.title.textStyle = opt.title.textStyle || {}
-      opt.title.textStyle.color = t.text
-    }
-
-    /* legend */
-    if (opt.legend) {
-      opt.legend.textStyle = opt.legend.textStyle || {}
-      opt.legend.textStyle.color = t.text
-    }
-
-    /* tooltip */
-    if (opt.tooltip) {
-      opt.tooltip.backgroundColor = t.tipBg
-      opt.tooltip.borderColor = t.tipBorder
-      opt.tooltip.textStyle = opt.tooltip.textStyle || {}
-      opt.tooltip.textStyle.color = t.text
-    }
-
-    /* xAxis / yAxis – support both object and array forms */
-    function themeAxis(ax) {
-      if (!ax) return
-      var axes = Array.isArray(ax) ? ax : [ax]
-      for (var i = 0; i < axes.length; i++) {
-        var a = axes[i]
-        a.axisLabel = a.axisLabel || {}
-        a.axisLabel.color = t.subtext
-        /* For value axes showing years, use plain integer formatter
-           to avoid locale-specific thousand separators (2,000 → 2000) */
-        if (a.type === "value" && a.axisLabel.formatter === "{value}") {
-          a.axisLabel.formatter = function (v) { return String(Math.round(v)) }
-        }
-        a.axisLine = a.axisLine || {}
-        a.axisLine.lineStyle = a.axisLine.lineStyle || {}
-        a.axisLine.lineStyle.color = t.axis
-        a.splitLine = a.splitLine || {}
-        a.splitLine.lineStyle = a.splitLine.lineStyle || {}
-        a.splitLine.lineStyle.color = t.split
-        /* axis name */
-        a.nameTextStyle = a.nameTextStyle || {}
-        a.nameTextStyle.color = t.subtext
+  function hasTopLegend(opt) {
+    var legends = opt && opt.legend
+    if (!legends) return false
+    if (!Array.isArray(legends)) legends = [legends]
+    for (var i = 0; i < legends.length; i++) {
+      var legend = legends[i]
+      if (!legend) continue
+      if (legend.top != null && legend.top !== "auto" && legend.top !== "bottom") {
+        return true
       }
     }
-    themeAxis(opt.xAxis)
-    themeAxis(opt.yAxis)
+    return false
+  }
 
-    /* visualMap */
-    if (opt.visualMap) {
-      var vm = Array.isArray(opt.visualMap) ? opt.visualMap : [opt.visualMap]
-      for (var i = 0; i < vm.length; i++) {
-        vm[i].textStyle = vm[i].textStyle || {}
-        vm[i].textStyle.color = t.text
+  function defaultToolboxTop(opt) {
+    var top = 8
+    if (opt && opt.title) top += 34
+    if (hasTopLegend(opt)) top += 28
+    return top
+  }
+
+  function ensureFeature(featureMap, key, defaults) {
+    var feature = featureMap[key]
+    if (feature === false) return
+    if (feature == null || feature === true) {
+      featureMap[key] = defaults
+      return
+    }
+    for (var name in defaults) {
+      if (feature[name] == null) {
+        feature[name] = defaults[name]
       }
     }
+  }
 
-    /* radar */
-    if (opt.radar) {
-      var rd = Array.isArray(opt.radar) ? opt.radar : [opt.radar]
-      for (var i = 0; i < rd.length; i++) {
-        rd[i].axisName = rd[i].axisName || {}
-        rd[i].axisName.color = t.subtext
-        rd[i].splitLine = rd[i].splitLine || {}
-        rd[i].splitLine.lineStyle = rd[i].splitLine.lineStyle || {}
-        rd[i].splitLine.lineStyle.color = t.split
-        rd[i].splitArea = rd[i].splitArea || {}
-        rd[i].splitArea.areaStyle = rd[i].splitArea.areaStyle || {}
-        rd[i].splitArea.areaStyle.color = ["transparent", "transparent"]
-      }
+  function ensureToolbox(opt) {
+    var toolbox = opt.toolbox || {}
+    toolbox.show = true
+    if (toolbox.orient == null) toolbox.orient = "vertical"
+    if (toolbox.right == null) toolbox.right = 8
+    if (toolbox.top == null) toolbox.top = defaultToolboxTop(opt)
+    if (toolbox.itemSize == null) toolbox.itemSize = 14
+    if (toolbox.itemGap == null) toolbox.itemGap = 10
+    toolbox.feature = toolbox.feature || {}
+
+    ensureFeature(toolbox.feature, "saveAsImage", {
+      title: "保存图片",
+      pixelRatio: 2,
+      excludeComponents: ["toolbox"],
+    })
+    ensureFeature(toolbox.feature, "dataView", {
+      title: "数据视图",
+      readOnly: true,
+      lang: ["数据视图", "关闭", "刷新"],
+    })
+    ensureFeature(toolbox.feature, "restore", {
+      title: "重置",
+    })
+
+    opt.toolbox = toolbox
+  }
+
+  function prepareOption(rawOption) {
+    var option = clone(rawOption)
+    if (option.backgroundColor == null) {
+      option.backgroundColor = "transparent"
     }
-
-    /* series: pie borderColor, label colors */
-    if (opt.series) {
-      for (var i = 0; i < opt.series.length; i++) {
-        var s = opt.series[i]
-        /* pie slice border = page background */
-        if (s.type === "pie" && s.itemStyle && s.itemStyle.borderWidth) {
-          s.itemStyle.borderColor = t.pieBorder
-        }
-        /* ensure bar/line labels are readable */
-        if (s.label && s.label.show !== false) {
-          s.label.color = s.label.color || t.subtext
-        }
-      }
-    }
-
-    opt.backgroundColor = "transparent"
-    return opt
+    ensureToolbox(option)
+    injectGraphTooltip(option)
+    return option
   }
 
   /* ---- chart registry ---- */
@@ -245,7 +222,7 @@
         return [x, y]
       }
       opt.tooltip.formatter = function (p) {
-        var t = tok()
+        var t = tooltipTokens()
         var cardWidth = Math.min(420, Math.max((window.innerWidth || 420) - 32, 240))
         if (p.dataType === "edge") {
           return _esc(p.data.sourceName || p.data.source) + " → " + _esc(p.data.targetName || p.data.target)
@@ -345,13 +322,8 @@
     container.textContent = ""
     updateContainerChrome(container, rawOption)
 
-    /* Inject rich tooltip formatter for graph series with paper metadata */
-    injectGraphTooltip(rawOption)
-
-    var instance = echarts.init(container, null, { renderer: "canvas" })
-    var themed = applyTheme(clone(rawOption))
-    injectGraphTooltip(themed)
-    instance.setOption(themed)
+    var instance = echarts.init(container, chartThemeName(), { renderer: "canvas" })
+    instance.setOption(prepareOption(rawOption))
     var entry = { el: container, rawOption: rawOption, instance: instance, ro: null }
     charts.push(entry)
     attachResize(entry)
@@ -368,10 +340,8 @@
           if (c.ro) c.ro.disconnect()
           c.instance.dispose()
           c.el.textContent = ""
-          var inst = echarts.init(c.el, null, { renderer: "canvas" })
-          var themed = applyTheme(clone(c.rawOption))
-          injectGraphTooltip(themed)
-          inst.setOption(themed)
+          var inst = echarts.init(c.el, chartThemeName(), { renderer: "canvas" })
+          inst.setOption(prepareOption(c.rawOption))
           c.instance = inst
           attachResize(c)
         } catch (e) {

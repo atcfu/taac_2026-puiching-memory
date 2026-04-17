@@ -43,6 +43,38 @@ def _sample_rows() -> list[dict]:
     ]
 
 
+def _as_list(value: object) -> list[dict]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _assert_explicit_v6_layout(option: dict) -> None:
+    for legend in _as_list(option.get("legend")):
+        assert any(key in legend for key in ("top", "bottom", "left", "right"))
+
+    for grid in _as_list(option.get("grid")):
+        assert grid.get("outerBoundsMode") == "none"
+
+    for axis_key in ("xAxis", "yAxis"):
+        for axis in _as_list(option.get(axis_key)):
+            assert axis.get("nameMoveOverlap") is False
+
+
+def _assert_no_explicit_style_colors(value: object) -> None:
+    if isinstance(value, dict):
+        assert "color" not in value
+        assert "borderColor" not in value
+        for child in value.values():
+            _assert_no_explicit_style_colors(child)
+        return
+    if isinstance(value, list):
+        for child in value:
+            _assert_no_explicit_style_colors(child)
+
+
 class TestClassifyColumns:
     def test_groups_all_columns(self) -> None:
         rows = _sample_rows()
@@ -296,3 +328,89 @@ class TestNewECharts:
         assert result is not None and result.missing_patterns is not None
         opt = echarts_co_missing(result.missing_patterns)
         serialize_echarts(opt)
+
+    def test_echarts_generators_set_explicit_v6_layout(self) -> None:
+        rows = _sample_rows()
+        result = scan_dataset(iter(rows))
+        assert result is not None
+        groups = classify_columns(list(rows[0].keys()))
+        stats = compute_column_stats(iter(rows))
+        seq_stats = compute_sequence_lengths(iter(rows))
+        ranking = compute_cardinality_ranking(stats, groups)
+        bins = compute_cardinality_bins(ranking)
+
+        options = [
+            echarts_label_distribution(compute_label_distribution(iter(rows))),
+            echarts_cardinality(ranking),
+            echarts_sequence_lengths(seq_stats),
+            echarts_coverage_heatmap(stats, groups),
+            echarts_ndcg_decay(),
+            echarts_cross_edition(),
+            echarts_column_layout(groups),
+            echarts_null_rates(stats),
+            echarts_edition_comparison(groups, seq_stats),
+            echarts_seq_length_summary(seq_stats),
+            echarts_cardinality_bins(bins),
+        ]
+
+        assert result.user_stats is not None
+        assert result.label_cond_stats is not None
+        assert result.dense_stats is not None
+        assert result.seq_patterns is not None
+        assert result.missing_patterns is not None
+
+        options.extend([
+            echarts_user_activity(result.user_stats),
+            echarts_cross_domain_overlap(result.user_stats),
+            echarts_feature_auc(result.label_cond_stats),
+            echarts_null_rate_by_label(result.label_cond_stats),
+            echarts_dense_distributions(result.dense_stats),
+            echarts_seq_repeat_rate(result.seq_patterns),
+            echarts_co_missing(result.missing_patterns),
+        ])
+
+        for option in options:
+            _assert_explicit_v6_layout(option)
+
+    def test_echarts_generators_do_not_hardcode_colors(self) -> None:
+        rows = _sample_rows()
+        result = scan_dataset(iter(rows))
+        assert result is not None
+        groups = classify_columns(list(rows[0].keys()))
+        stats = compute_column_stats(iter(rows))
+        seq_stats = compute_sequence_lengths(iter(rows))
+        ranking = compute_cardinality_ranking(stats, groups)
+        bins = compute_cardinality_bins(ranking)
+
+        options = [
+            echarts_label_distribution(compute_label_distribution(iter(rows))),
+            echarts_cardinality(ranking),
+            echarts_sequence_lengths(seq_stats),
+            echarts_coverage_heatmap(stats, groups),
+            echarts_ndcg_decay(),
+            echarts_cross_edition(),
+            echarts_column_layout(groups),
+            echarts_null_rates(stats),
+            echarts_edition_comparison(groups, seq_stats),
+            echarts_seq_length_summary(seq_stats),
+            echarts_cardinality_bins(bins),
+        ]
+
+        assert result.user_stats is not None
+        assert result.label_cond_stats is not None
+        assert result.dense_stats is not None
+        assert result.seq_patterns is not None
+        assert result.missing_patterns is not None
+
+        options.extend([
+            echarts_user_activity(result.user_stats),
+            echarts_cross_domain_overlap(result.user_stats),
+            echarts_feature_auc(result.label_cond_stats),
+            echarts_null_rate_by_label(result.label_cond_stats),
+            echarts_dense_distributions(result.dense_stats),
+            echarts_seq_repeat_rate(result.seq_patterns),
+            echarts_co_missing(result.missing_patterns),
+        ])
+
+        for option in options:
+            _assert_no_explicit_style_colors(option)

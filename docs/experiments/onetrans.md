@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # OneTrans
 
 **统一 Tokenizer + 单 Transformer**

@@ -1,3 +1,7 @@
+---
+icon: lucide/book-marked
+---
+
 # HyFormer: Revisiting the Roles of Sequence Modeling and Feature Interaction in CTR Prediction
 
 Converted from the LaTeX source under arXiv-2601.12681v2.

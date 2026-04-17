@@ -1,3 +1,7 @@
+---
+icon: lucide/house
+---
+
 # TAAC 2026 Experiment Workspace
 
 **迈向统一序列建模与特征交互的大规模推荐系统**

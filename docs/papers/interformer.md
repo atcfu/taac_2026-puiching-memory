@@ -1,3 +1,7 @@
+---
+icon: lucide/book-marked
+---
+
 # InterFormer: Effective Heterogeneous Interaction Learning for Click-Through Rate Prediction
 
 Converted from the LaTeX source under arXiv-2411.09852v4.

@@ -1,3 +1,7 @@
+---
+icon: lucide/search
+---
+
 # 超参数搜索
 
 ## 概述

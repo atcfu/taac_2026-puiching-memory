@@ -1,3 +1,7 @@
+---
+icon: lucide/wrench
+---
+
 # 仓库日志管理
 
 ## 目标

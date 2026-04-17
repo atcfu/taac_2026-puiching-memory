@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # InterFormer
 
 **双向序列-特征交互**

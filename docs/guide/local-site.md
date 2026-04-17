@@ -1,3 +1,7 @@
+---
+icon: lucide/hard-drive-download
+---
+
 # 本地生成文档站点
 
 本项目使用 [zensical](https://pypi.org/project/zensical/) 构建文档站点，配置文件为仓库根目录的 `zensical.toml`。

@@ -1,3 +1,7 @@
+---
+icon: lucide/folder-open
+---
+
 # 实验包总览
 
 ## 什么是实验包

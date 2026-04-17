@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # Baseline
 
 **最小参考实现 / Starter Package**

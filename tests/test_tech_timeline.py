@@ -42,6 +42,7 @@ class TestTechTimelineECharts:
         option = to_echarts(graph)
 
         assert option["_height"] == "640px"
+        assert option["legend"]["top"] == 0
         assert option["series"][0]["type"] == "graph"
         assert option["series"][0]["data"] == [
             {
@@ -85,6 +86,9 @@ class TestTechTimelineECharts:
                 "targetName": "FollowUp",
                 "lineStyle": {"width": 1.5, "opacity": 0.5},
             }
+        ]
+        assert option["series"][0]["categories"] == [
+            {"name": branch} for branch in tech_timeline.BRANCHES
         ]
         assert '"type": "graph"' in json.dumps(option, ensure_ascii=False)
 

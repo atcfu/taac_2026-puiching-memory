@@ -340,9 +340,6 @@ def compute_cardinality_ranking(
 # 6. ECharts interactive option generators
 # ---------------------------------------------------------------------------
 
-_EC_COLORS = ["#89b4fa", "#f38ba8", "#a6e3a1", "#fab387", "#cba6f7", "#f9e2af"]
-
-
 def echarts_label_distribution(dist: LabelDistribution) -> dict[str, Any]:
     """ECharts option for label-type pie chart."""
     table = dist.as_table()
@@ -359,7 +356,6 @@ def echarts_label_distribution(dist: LabelDistribution) -> dict[str, Any]:
                 {"name": r["name"], "value": r["count"]}
                 for r in table
             ],
-            "color": _EC_COLORS,
         }],
     }
 
@@ -373,16 +369,15 @@ def echarts_cardinality(ranking: list[dict[str, Any]], *, top_n: int = 25) -> di
         for r in data
     ]
     values = [r["n_unique"] for r in data]
-    colors = [_EC_COLORS[0] if r["group"] == "user" else _EC_COLORS[2] for r in data]
     return {
         "_height": "600px",
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "grid": {"left": 90, "right": 30, "top": 40, "bottom": 30},
-        "xAxis": {"type": "log", "name": "基数 (unique values)"},
-        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 10}},
+        "grid": {"left": 90, "right": 30, "top": 40, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "log", "name": "基数 (unique values)", "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 10}, "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
-            "data": [{"value": v, "itemStyle": {"color": c}} for v, c in zip(values, colors)],
+            "data": values,
             "label": {"show": True, "position": "right", "formatter": "{c}"},
         }],
     }
@@ -394,10 +389,10 @@ def echarts_sequence_lengths(seq_stats: dict[str, SequenceLengthStats]) -> dict[
     summaries = [seq_stats[d].summary() for d in domains]
     return {
         "tooltip": {"trigger": "axis"},
-        "legend": {"data": domains},
-        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40},
-        "xAxis": {"type": "category", "data": ["min", "P25", "median", "mean", "P75", "P95", "max"]},
-        "yAxis": {"type": "value", "name": "序列长度"},
+        "legend": {"data": domains, "top": 0},
+        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": ["min", "P25", "median", "mean", "P75", "P95", "max"], "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "序列长度", "nameMoveOverlap": False},
         "series": [
             {
                 "name": d,
@@ -409,7 +404,6 @@ def echarts_sequence_lengths(seq_stats: dict[str, SequenceLengthStats]) -> dict[
                     s["min"], int(s["p25"]), int(s["median"]),
                     int(s["mean"]), int(s["p75"]), int(s["p95"]), s["max"],
                 ],
-                "itemStyle": {"color": _EC_COLORS[i % len(_EC_COLORS)]},
                 "areaStyle": {"opacity": 0.08},
             }
             for i, (d, s) in enumerate(zip(domains, summaries))
@@ -429,13 +423,12 @@ def echarts_coverage_heatmap(
     return {
         "_height": "180px",
         "tooltip": {},
-        "grid": {"left": 60, "right": 30, "top": 10, "bottom": 60},
-        "xAxis": {"type": "category", "data": names, "axisLabel": {"rotate": 60, "fontSize": 7}},
-        "yAxis": {"type": "category", "data": ["coverage"], "show": False},
+        "grid": {"left": 60, "right": 30, "top": 10, "bottom": 60, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": names, "axisLabel": {"rotate": 60, "fontSize": 7}, "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": ["coverage"], "show": False, "nameMoveOverlap": False},
         "visualMap": {
             "min": 0, "max": 1, "show": True, "orient": "horizontal",
             "left": "center", "bottom": 0,
-            "inRange": {"color": ["#f38ba8", "#f9e2af", "#a6e3a1"]},
             "text": ["100%", "0%"],
         },
         "series": [{
@@ -452,9 +445,9 @@ def echarts_ndcg_decay(k_max: int = 10) -> dict[str, Any]:
     gains = [round(1.0 / math.log2(k + 1), 4) for k in ks]
     return {
         "tooltip": {"trigger": "axis"},
-        "grid": {"left": 60, "right": 30, "top": 50, "bottom": 40},
-        "xAxis": {"type": "category", "data": [str(k) for k in ks], "name": "排名位置 k"},
-        "yAxis": {"type": "value", "name": "1/log₂(k+1)", "max": 1.15},
+        "grid": {"left": 60, "right": 30, "top": 50, "bottom": 40, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": [str(k) for k in ks], "name": "排名位置 k", "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "1/log₂(k+1)", "max": 1.15, "nameMoveOverlap": False},
         "series": [{
             "type": "line",
             "data": gains,
@@ -463,7 +456,6 @@ def echarts_ndcg_decay(k_max: int = 10) -> dict[str, Any]:
             "symbolSize": 10,
             "label": {"show": True, "position": "top", "fontSize": 9},
             "areaStyle": {"opacity": 0.1},
-            "itemStyle": {"color": _EC_COLORS[0]},
         }],
     }
 
@@ -482,14 +474,14 @@ def echarts_cross_edition(
     current = current_distribution or {"曝光": 0.0, "点击": 87.6, "转化": 12.4}
     return {
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "legend": {"data": ["曝光", "点击", "转化"]},
-        "grid": {"left": 60, "right": 30, "top": 50, "bottom": 30},
-        "xAxis": {"type": "category", "data": ["上届 1M", "上届 10M", current_label]},
-        "yAxis": {"type": "value", "name": "占比 (%)", "max": 100},
+        "legend": {"data": ["曝光", "点击", "转化"], "top": 0},
+        "grid": {"left": 60, "right": 30, "top": 50, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": ["上届 1M", "上届 10M", current_label], "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "占比 (%)", "max": 100, "nameMoveOverlap": False},
         "series": [
-            {"name": "曝光", "type": "bar", "data": [90.19, 94.63, float(current.get("曝光", 0.0))], "itemStyle": {"color": _EC_COLORS[0]}},
-            {"name": "点击", "type": "bar", "data": [9.81, 2.85, float(current.get("点击", 0.0))], "itemStyle": {"color": _EC_COLORS[1]}},
-            {"name": "转化", "type": "bar", "data": [0, 2.52, float(current.get("转化", 0.0))], "itemStyle": {"color": _EC_COLORS[2]}},
+            {"name": "曝光", "type": "bar", "data": [90.19, 94.63, float(current.get("曝光", 0.0))]},
+            {"name": "点击", "type": "bar", "data": [9.81, 2.85, float(current.get("点击", 0.0))]},
+            {"name": "转化", "type": "bar", "data": [0, 2.52, float(current.get("转化", 0.0))]},
         ],
     }
 
@@ -514,7 +506,6 @@ def echarts_column_layout(groups: ColumnGroups) -> dict[str, Any]:
             "itemStyle": {"borderRadius": 6, "borderWidth": 2},
             "label": {"formatter": "{b}\n{c} ({d}%)"},
             "data": [{"name": n, "value": v} for n, v in pieces],
-            "color": _EC_COLORS,
         }],
     }
 
@@ -529,17 +520,16 @@ def echarts_null_rates(stats: dict[str, ColumnStats], *, top_n: int = 30) -> dic
     return {
         "_height": f"{max(300, len(items) * 22)}px",
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "grid": {"left": 120, "right": 40, "top": 30, "bottom": 30},
-        "xAxis": {"type": "value", "name": "缺失率", "max": 1.0},
-        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}},
+        "grid": {"left": 120, "right": 40, "top": 30, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "value", "name": "缺失率", "max": 1.0, "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}, "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
             "data": rates,
-            "itemStyle": {"color": _EC_COLORS[1]},
             "label": {"show": True, "position": "right", "formatter": "{c}"},
             "markLine": {
                 "silent": True,
-                "data": [{"xAxis": 0.5, "lineStyle": {"color": _EC_COLORS[4], "type": "dashed"}}],
+                "data": [{"xAxis": 0.5, "lineStyle": {"type": "dashed"}}],
             },
         }],
     }
@@ -587,23 +577,21 @@ def echarts_edition_comparison(
     return {
         "title": {"text": "TAAC 赛题版本数据规模对比", "subtext": subtitle},
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "legend": {"data": ["TAAC 2025", "TAAC 2026"]},
-        "grid": {"left": 100, "right": 40, "top": 70, "bottom": 30},
-        "xAxis": {"type": "log" if use_log else "value", "name": "数值 (log)" if use_log else "数值"},
-        "yAxis": {"type": "category", "data": metrics, "axisLabel": {"fontSize": 9}},
+        "legend": {"data": ["TAAC 2025", "TAAC 2026"], "top": 40},
+        "grid": {"left": 100, "right": 40, "top": 100, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "log" if use_log else "value", "name": "数值 (log)" if use_log else "数值", "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": metrics, "axisLabel": {"fontSize": 9}, "nameMoveOverlap": False},
         "series": [
             {
                 "name": "TAAC 2025",
                 "type": "bar",
                 "data": taac2025,
-                "itemStyle": {"color": _EC_COLORS[4]},
                 "label": {"show": True, "position": "right", "formatter": "{c}"},
             },
             {
                 "name": "TAAC 2026",
                 "type": "bar",
                 "data": taac2026,
-                "itemStyle": {"color": _EC_COLORS[0]},
                 "label": {"show": True, "position": "right", "formatter": "{c}"},
             },
         ],
@@ -640,13 +628,11 @@ def echarts_seq_length_summary(seq_stats: dict[str, SequenceLengthStats]) -> dic
             "name": d,
             "value": [s["min"], int(s["p25"]), int(s["median"]),
                        int(s["mean"]), int(s["p75"]), int(s["p95"]), s["max"]],
-            "lineStyle": {"color": _EC_COLORS[i % len(_EC_COLORS)]},
-            "itemStyle": {"color": _EC_COLORS[i % len(_EC_COLORS)]},
             "areaStyle": {"opacity": 0.1},
         })
     return {
         "tooltip": {},
-        "legend": {"data": [d for d, s in zip(domains, summaries) if s["count"] > 0]},
+        "legend": {"data": [d for d, s in zip(domains, summaries) if s["count"] > 0], "top": 0},
         "radar": {"indicator": indicators},
         "series": [{
             "type": "radar",
@@ -1175,13 +1161,12 @@ def echarts_user_activity(user_stats: UserStats) -> dict[str, Any]:
     return {
         "title": {"text": f"用户活跃度分布 (共 {dist.get('total_users', 0)} 用户)"},
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40},
-        "xAxis": {"type": "category", "data": list(bins.keys()), "name": "行为次数"},
-        "yAxis": {"type": "value", "name": "用户数"},
+        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": list(bins.keys()), "name": "行为次数", "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "用户数", "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
             "data": list(bins.values()),
-            "itemStyle": {"color": _EC_COLORS[0]},
             "label": {"show": True, "position": "top"},
         }],
     }
@@ -1201,13 +1186,12 @@ def echarts_cross_domain_overlap(user_stats: UserStats) -> dict[str, Any]:
         "_height": "350px",
         "title": {"text": "跨域用户重叠矩阵"},
         "tooltip": {"formatter": "{c}"},
-        "grid": {"left": 80, "right": 40, "top": 60, "bottom": 60},
-        "xAxis": {"type": "category", "data": domains, "splitArea": {"show": True}},
-        "yAxis": {"type": "category", "data": domains, "splitArea": {"show": True}},
+        "grid": {"left": 80, "right": 40, "top": 60, "bottom": 60, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": domains, "splitArea": {"show": True}, "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": domains, "splitArea": {"show": True}, "nameMoveOverlap": False},
         "visualMap": {
             "min": 0, "max": int(max_val), "show": True,
             "orient": "horizontal", "left": "center", "bottom": 0,
-            "inRange": {"color": ["#f9e2af", "#fab387", "#f38ba8"]},
         },
         "series": [{
             "type": "heatmap",
@@ -1229,17 +1213,16 @@ def echarts_feature_auc(label_cond_stats: LabelConditionalStats, *, top_n: int =
         "_height": f"{max(300, len(items) * 22)}px",
         "title": {"text": "单特征 AUC 排名 (top features)"},
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "grid": {"left": 90, "right": 40, "top": 50, "bottom": 30},
-        "xAxis": {"type": "value", "name": "AUC", "min": max(0.0, min(values) - 0.05), "max": min(1.0, max(0.55, max(values) + 0.05))},
-        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 9}},
+        "grid": {"left": 90, "right": 40, "top": 50, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "value", "name": "AUC", "min": max(0.0, min(values) - 0.05), "max": min(1.0, max(0.55, max(values) + 0.05)), "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 9}, "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
             "data": values,
-            "itemStyle": {"color": _EC_COLORS[2]},
             "label": {"show": True, "position": "right", "formatter": "{c}"},
             "markLine": {
                 "silent": True,
-                "data": [{"xAxis": 0.5, "lineStyle": {"color": _EC_COLORS[4], "type": "dashed"},
+                "data": [{"xAxis": 0.5, "lineStyle": {"type": "dashed"},
                           "label": {"formatter": "随机基线"}}],
             },
         }],
@@ -1259,13 +1242,13 @@ def echarts_null_rate_by_label(label_cond_stats: LabelConditionalStats, *, top_n
         "_height": f"{max(300, len(diffs) * 22)}px",
         "title": {"text": "正负样本缺失率对比 (差异最大的特征)"},
         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "legend": {"data": ["正样本 (转化)", "负样本 (非转化)"]},
-        "grid": {"left": 100, "right": 40, "top": 60, "bottom": 30},
-        "xAxis": {"type": "value", "name": "缺失率", "max": 1.0},
-        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}},
+        "legend": {"data": ["正样本 (转化)", "负样本 (非转化)"], "top": 28},
+        "grid": {"left": 100, "right": 40, "top": 96, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "value", "name": "缺失率", "max": 1.0, "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}, "nameMoveOverlap": False},
         "series": [
-            {"name": "正样本 (转化)", "type": "bar", "data": pos_rates, "itemStyle": {"color": _EC_COLORS[2]}},
-            {"name": "负样本 (非转化)", "type": "bar", "data": neg_rates, "itemStyle": {"color": _EC_COLORS[1]}},
+            {"name": "正样本 (转化)", "type": "bar", "data": pos_rates},
+            {"name": "负样本 (非转化)", "type": "bar", "data": neg_rates},
         ],
     }
 
@@ -1287,24 +1270,23 @@ def echarts_dense_distributions(dense_stats: DenseFeatureStats) -> dict[str, Any
     return {
         "title": {"text": "稠密特征分布概览 (均值 ± 标准差)"},
         "tooltip": {"trigger": "axis"},
-        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 60},
-        "xAxis": {"type": "category", "data": names, "axisLabel": {"rotate": 45}},
-        "yAxis": {"type": "value", "name": "值"},
+        "grid": {"left": 60, "right": 30, "top": 96, "bottom": 60, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": names, "axisLabel": {"rotate": 45}, "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "值", "nameMoveOverlap": False},
         "series": [
             {
                 "name": "均值",
                 "type": "bar",
                 "data": means,
-                "itemStyle": {"color": _EC_COLORS[0]},
             },
             {
                 "name": "标准差",
                 "type": "bar",
                 "data": stds,
-                "itemStyle": {"color": _EC_COLORS[3], "opacity": 0.6},
+                "itemStyle": {"opacity": 0.6},
             },
         ],
-        "legend": {"data": ["均值", "标准差"]},
+        "legend": {"data": ["均值", "标准差"], "top": 28},
     }
 
 
@@ -1322,7 +1304,6 @@ def echarts_cardinality_bins(bins: dict[str, int]) -> dict[str, Any]:
             "itemStyle": {"borderRadius": 6, "borderWidth": 2},
             "label": {"formatter": "{b}\n{c} ({d}%)"},
             "data": data,
-            "color": _EC_COLORS,
         }],
     }
 
@@ -1336,13 +1317,12 @@ def echarts_seq_repeat_rate(seq_patterns: SequencePatternStats) -> dict[str, Any
     return {
         "title": {"text": "序列内物品重复率 (按域)"},
         "tooltip": {"trigger": "axis"},
-        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40},
-        "xAxis": {"type": "category", "data": domains},
-        "yAxis": {"type": "value", "name": "平均重复率", "max": 1.0},
+        "grid": {"left": 60, "right": 30, "top": 60, "bottom": 40, "outerBoundsMode": "none"},
+        "xAxis": {"type": "category", "data": domains, "nameMoveOverlap": False},
+        "yAxis": {"type": "value", "name": "平均重复率", "max": 1.0, "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
             "data": means,
-            "itemStyle": {"color": _EC_COLORS[4]},
             "label": {"show": True, "position": "top", "formatter": "{c}"},
         }],
     }
@@ -1364,13 +1344,12 @@ def echarts_co_missing(missing_patterns: MissingPatternStats, *, top_n: int = 10
         "_height": f"{max(250, len(pairs) * 24)}px",
         "title": {"text": "特征共缺失率 TOP 对"},
         "tooltip": {"trigger": "axis"},
-        "grid": {"left": 150, "right": 40, "top": 50, "bottom": 30},
-        "xAxis": {"type": "value", "name": "共缺失率", "max": 1.0},
-        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}},
+        "grid": {"left": 150, "right": 40, "top": 50, "bottom": 30, "outerBoundsMode": "none"},
+        "xAxis": {"type": "value", "name": "共缺失率", "max": 1.0, "nameMoveOverlap": False},
+        "yAxis": {"type": "category", "data": names, "axisLabel": {"fontSize": 8}, "nameMoveOverlap": False},
         "series": [{
             "type": "bar",
             "data": rates,
-            "itemStyle": {"color": _EC_COLORS[5]},
             "label": {"show": True, "position": "right", "formatter": "{c}"},
         }],
     }

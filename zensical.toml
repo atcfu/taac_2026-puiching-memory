@@ -10,8 +10,8 @@ edit_uri = "edit/main/docs/"
 extra_css = ["assets/stylesheets/extra.css"]
 extra_javascript = [
     "assets/javascripts/mathjax.js",
-    { path = "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js", async = true },
-    { path = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js", async = true },
+    { path = "https://cdn.jsdelivr.net/npm/mathjax@4.1.1/tex-mml-chtml.js", async = true },
+    { path = "https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js", async = true },
     "assets/javascripts/echarts-fence.js",
 ]
 
@@ -48,6 +48,7 @@ nav = [
     { "想法" = [
         { "索引" = "ideas/index.md" },
         { "特征Token化·长序列注意力·辅助Loss" = "ideas/posts/001-rec-model-work-summary.md" },
+        { "腾讯广告算法大赛 2025 官方论文解读：全模态生成式推荐" = "ideas/posts/002-taac2025-competition-paper.md" },
     ] },
     { "论文" = [
         { "技术发展时间线" = "papers/index.md" },
@@ -73,12 +74,12 @@ features = [
     "content.tooltips",
     "content.footnote.tooltips",
     "navigation.tabs",
+    "navigation.tabs.sticky",
     "navigation.sections",
     "navigation.expand",
     "navigation.path",
     "navigation.top",
     "navigation.tracking",
-    "navigation.indexes",
     "navigation.instant",
     "navigation.instant.prefetch",
     "search.highlight",
@@ -94,14 +95,14 @@ code = "JetBrains Mono"
 
 [[project.theme.palette]]
 scheme = "default"
-primary = "teal"
-accent = "lime"
+primary = "blue grey"
+accent = "indigo"
 toggle.icon = "lucide/moon"
 toggle.name = "切换到深色模式"
 
 [[project.theme.palette]]
 scheme = "slate"
-primary = "teal"
-accent = "lime"
+primary = "blue grey"
+accent = "indigo"
 toggle.icon = "lucide/sun"
 toggle.name = "切换到浅色模式"

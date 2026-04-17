@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # Grok
 
 **分段序列建模 + Pairwise Loss**

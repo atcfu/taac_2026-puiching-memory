@@ -1,3 +1,7 @@
+---
+icon: lucide/git-branch-plus
+---
+
 # 开发指南：新增实验包
 
 ## 概述

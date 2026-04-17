@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # O_o
 
 **简化统一设计**

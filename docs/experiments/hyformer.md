@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # HyFormer
 
 **多序列分支 + Query Decode/Boost**

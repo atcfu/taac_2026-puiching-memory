@@ -1,3 +1,7 @@
+---
+icon: lucide/flask-conical
+---
+
 # CTR Baseline
 
 **DIN 风格注意力 CTR 预估**

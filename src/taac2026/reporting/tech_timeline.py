@@ -564,19 +564,6 @@ def _dedupe_name(existing_names: set[str], preferred: str) -> str:
 # ECharts serialisation
 # ---------------------------------------------------------------------------
 
-# Curated palette — one colour per branch, distinguishable on both
-# light and dark backgrounds.
-_BRANCH_COLORS: list[str] = [
-    "#5470c6",  # 基础方法  — blue
-    "#91cc75",  # 深度推荐  — green
-    "#fac858",  # 序列建模  — amber
-    "#ee6666",  # 特征交叉  — red
-    "#73c0de",  # 长序列    — cyan
-    "#3ba272",  # 统一建模  — teal
-    "#fc8452",  # 生成式推荐 — orange
-]
-
-
 def _symbol_size(citation_count: int) -> int:
     """Map citation count to a node radius."""
     if citation_count >= 5000:
@@ -635,7 +622,6 @@ def to_echarts(graph: TimelineGraph) -> dict[str, Any]:
         }
         if n.highlight:
             node_dict["itemStyle"] = {
-                "borderColor": "#FFD700",
                 "borderWidth": 3,
             }
             node_dict["label"]["fontSize"] = 12
@@ -660,10 +646,7 @@ def to_echarts(graph: TimelineGraph) -> dict[str, Any]:
         })
 
     # ── categories ──
-    categories = [
-        {"name": b, "itemStyle": {"color": _BRANCH_COLORS[i]}}
-        for i, b in enumerate(BRANCHES)
-    ]
+    categories = [{"name": b} for b in BRANCHES]
 
     option: dict[str, Any] = {
         "_height": "640px",
@@ -696,7 +679,6 @@ def to_echarts(graph: TimelineGraph) -> dict[str, Any]:
                     "fontWeight": "bold",
                 },
                 "lineStyle": {
-                    "color": "#999",
                     "width": 1.5,
                     "curveness": 0.15,
                     "opacity": 0.4,

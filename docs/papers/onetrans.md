@@ -1,3 +1,7 @@
+---
+icon: lucide/book-marked
+---
+
 # OneTrans: Unified Feature Interaction and Sequence Modeling with One Transformer in Industrial Recommender
 
 Converted from the LaTeX source under arXiv-2510.26104v3.
