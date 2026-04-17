@@ -29,18 +29,18 @@ uv run taac-clean-github-logs --repo Puiching-Memory/TAAC_2026 --only-completed-
 
 ## 脚本参数
 
-| 参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `--repo` | string | 读取 `GITHUB_REPOSITORY` | 目标仓库，格式 `owner/repo` |
-| `--token` | string | 读取 `GITHUB_TOKEN` | GitHub API 访问令牌 |
-| `--api-base` | string | `https://api.github.com` | API 基地址 |
-| `--keep-action-runs` | int | `30` | 保留最新 N 条 workflow run；更旧的 run 删除其 logs |
-| `--keep-pages-deployments` | int | `20` | 保留最新 N 条 Pages deployment；更旧的 deployment 删除 |
-| `--per-page` | int | `100` | 分页大小，范围 `1..100` |
-| `--only-completed-runs` | flag | `false` | 仅处理 `status=completed` 的 workflow run |
-| `--actions-only` | flag | `false` | 只清理 Actions 日志 |
-| `--pages-only` | flag | `false` | 只清理 Pages 部署记录 |
-| `--execute` | flag | `false` | 开启真实删除；未传入时为 dry-run |
+| 参数                       | 类型   | 默认值                   | 说明                                                   |
+| -------------------------- | ------ | ------------------------ | ------------------------------------------------------ |
+| `--repo`                   | string | 读取 `GITHUB_REPOSITORY` | 目标仓库，格式 `owner/repo`                            |
+| `--token`                  | string | 读取 `GITHUB_TOKEN`      | GitHub API 访问令牌                                    |
+| `--api-base`               | string | `https://api.github.com` | API 基地址                                             |
+| `--keep-action-runs`       | int    | `30`                     | 保留最新 N 条 workflow run；更旧的 run 删除其 logs     |
+| `--keep-pages-deployments` | int    | `20`                     | 保留最新 N 条 Pages deployment；更旧的 deployment 删除 |
+| `--per-page`               | int    | `100`                    | 分页大小，范围 `1..100`                                |
+| `--only-completed-runs`    | flag   | `false`                  | 仅处理 `status=completed` 的 workflow run              |
+| `--actions-only`           | flag   | `false`                  | 只清理 Actions 日志                                    |
+| `--pages-only`             | flag   | `false`                  | 只清理 Pages 部署记录                                  |
+| `--execute`                | flag   | `false`                  | 开启真实删除；未传入时为 dry-run                       |
 
 参数校验要点：
 
@@ -77,7 +77,7 @@ uv run taac-clean-github-logs --repo Puiching-Memory/TAAC_2026 --pages-only --ex
 脚本结束时会输出 4 行摘要：
 
 ```text
-repo=ChinG-Lynn/TAAC_2026
+repo=Puiching-Memory/TAAC_2026
 mode=dry-run
 actions=listed:5,targeted:0,deleted:0,failed:0
 pages=listed:3,targeted:0,deleted:0,failed:0
