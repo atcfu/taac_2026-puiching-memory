@@ -8,6 +8,7 @@ __pycache__/
 *.egg-info/
 site/
 .cache/
+*.echarts.json
 
 # TAAC2026 Symbiosis
 config/gen/symbiosis/

@@ -8,9 +8,11 @@ import pytest
 UNIT_TEST_FILES = {
     "test_clean_pycache.py",
     "test_github_cleanup.py",
+    "test_dataset_eda.py",
     "test_experiment_packages.py",
     "test_metrics.py",
     "test_model_performance_plot.py",
+    "test_model_robustness.py",
     "test_property_based.py",
     "test_payload.py",
     "test_profiling_unit.py",
@@ -18,7 +20,12 @@ UNIT_TEST_FILES = {
     "test_schema_contract.py",
     "test_search_trial.py",
     "test_search_worker.py",
+    "test_tech_timeline.py",
     "test_test_collection.py",
+}
+
+GPU_TEST_FILES = {
+    "test_gpu.py",
 }
 
 INTEGRATION_TEST_FILES = {
@@ -42,6 +49,7 @@ def _build_test_file_classification() -> dict[str, str]:
 
     classification = {filename: "unit" for filename in UNIT_TEST_FILES}
     classification.update({filename: "integration" for filename in INTEGRATION_TEST_FILES})
+    classification.update({filename: "gpu" for filename in GPU_TEST_FILES})
     return classification
 
 
@@ -56,6 +64,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             item.add_marker(pytest.mark.unit)
         elif marker == "integration":
             item.add_marker(pytest.mark.integration)
+        elif marker == "gpu":
+            item.add_marker(pytest.mark.gpu)
         else:
             unclassified_files.add(filename)
 

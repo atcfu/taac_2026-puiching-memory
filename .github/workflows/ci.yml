@@ -50,6 +50,9 @@ jobs:
       - name: Sync project environment
         run: uv sync --locked
 
+      - name: Run torch lint rules
+        run: uv run python scripts/lint_torch.py
+
       - name: Run unit tests with coverage
         run: uv run --with coverage coverage run -m pytest -m unit -v
 
