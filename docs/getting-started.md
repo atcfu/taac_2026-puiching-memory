@@ -144,10 +144,12 @@ uv run taac-train --experiment config/hyformer
 `taac-package-train` 会把指定实验包裁剪成训练所需的最小运行时，并输出单个 zip。
 zip 顶层包含：
 
-- `run.sh`：自动解压 payload、执行 `uv sync`、调用训练 CLI
+- `run.sh`：自动解压 payload、执行 `uv sync --locked`、调用训练 CLI
 - `runtime_payload.tar.gz`：最小训练源码与目标实验包
 - `bundle_manifest.json`：打包元数据
 - `README.md`：压缩包内的使用说明
+
+其中 `runtime_payload.tar.gz` 解压后包含 `pyproject.toml`、`uv.lock` 和最小训练源码。
 
 ```bash
 # 生成默认命名的 zip

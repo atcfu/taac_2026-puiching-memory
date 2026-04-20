@@ -216,9 +216,14 @@ def build_training_bundle(
     experiment_relative_path = _normalize_experiment_relative_path(experiment_argument)
     normalized_bundle_name = _slugify(bundle_name or f"{experiment_relative_path.name}-train-bundle")
     target_path = Path(output_path).expanduser() if output_path is not None else DEFAULT_OUTPUT_ROOT / f"{normalized_bundle_name}.zip"
+    archive_path = target_path if target_path.is_absolute() else (REPO_ROOT / target_path)
+    archive_path = archive_path.resolve()
 
-    if target_path.exists() and not force:
-        raise FileExistsError(f"output zip already exists: {target_path}")
+    if archive_path.exists():
+        if archive_path.is_dir():
+            raise IsADirectoryError(f"output path is a directory: {archive_path}")
+        if not force:
+            raise FileExistsError(f"output zip already exists: {archive_path}")
 
     with tempfile.TemporaryDirectory(prefix="taac_train_bundle_") as temp_dir_name:
         temp_dir = Path(temp_dir_name)
@@ -232,6 +237,7 @@ def build_training_bundle(
             _copy_relative_path(relative_path, payload_root)
         _copy_relative_path(experiment_relative_path, payload_root)
         _copy_relative_path(Path("pyproject.toml"), payload_root)
+        _copy_relative_path(Path("uv.lock"), payload_root)
         _copy_relative_path(Path("README.md"), payload_root)
 
         payload_archive = bundle_root / PAYLOAD_ARCHIVE_NAME
@@ -243,9 +249,6 @@ def build_training_bundle(
         run_sh_path.chmod(0o755)
         _write_text(bundle_root / "README.md", _render_readme(normalized_bundle_name, bundled_experiment_path))
 
-        archive_path = target_path if target_path.is_absolute() else (REPO_ROOT / target_path)
-        archive_path = archive_path.resolve()
-
         payload_file_count = _count_files(payload_root)
         payload_size_bytes = _count_bytes(payload_root)
         manifest = {
@@ -256,6 +259,7 @@ def build_training_bundle(
             "payload_archive": PAYLOAD_ARCHIVE_NAME,
             "payload_root": PAYLOAD_PROJECT_DIRNAME,
             "entrypoint": "run.sh",
+            "lockfile": "uv.lock",
             "runtime_env": {
                 "dataset_path": DEFAULT_DATASET_ENV_VAR,
                 "output_dir": DEFAULT_OUTPUT_ENV_VAR,
@@ -273,6 +277,8 @@ def build_training_bundle(
         temp_archive_path = temp_dir / "bundle.zip"
         _write_zip(bundle_root, temp_archive_path)
         ensure_dir(archive_path.parent)
+        if archive_path.exists():
+            archive_path.unlink()
         shutil.move(str(temp_archive_path), str(archive_path))
 
     return TrainingBundleResult(
@@ -295,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
             bundle_name=args.bundle_name,
             force=args.force,
         )
-    except (FileExistsError, ValueError) as exc:
+    except (FileExistsError, IsADirectoryError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 

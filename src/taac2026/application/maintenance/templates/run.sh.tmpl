@@ -36,10 +36,10 @@ fi
 
 cd "$PROJECT_DIR"
 
-UV_SYNC_ARGS=(sync)
+UV_SYNC_EXTRA_ARGS=()
 if [[ "$ENABLE_TE" == "1" ]]; then
-    UV_SYNC_ARGS+=(--extra te)
+    UV_SYNC_EXTRA_ARGS+=(--extra te)
 fi
 
-uv "${UV_SYNC_ARGS[@]}"
+uv sync --locked "${UV_SYNC_EXTRA_ARGS[@]}"
 uv run taac-train --experiment "./{{bundled_experiment_path}}" --dataset-path "$DATASET_PATH" --run-dir "$OUTPUT_DIR" "$@"

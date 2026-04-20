@@ -56,6 +56,8 @@ baseline-train-bundle.zip
 - `runtime_payload.tar.gz` 里包含最小训练源码和目标实验包
 - `bundle_manifest.json` 记录实验路径、环境变量名和 payload 统计信息
 
+其中 `runtime_payload.tar.gz` 解压后还会包含 `pyproject.toml` 与 `uv.lock`，用于保持与仓库一致的锁定依赖解析。
+
 payload 内部大致结构如下：
 
 ```text
@@ -63,6 +65,7 @@ project/
 ├── config/
 │   └── baseline/
 ├── pyproject.toml
+├── uv.lock
 └── src/
     └── taac2026/
         ├── __init__.py
@@ -101,7 +104,7 @@ bash run.sh --compile --amp --amp-dtype bfloat16
 `run.sh` 内部执行的是：
 
 ```bash
-uv sync
+uv sync --locked
 uv run taac-train --experiment ./config/baseline --dataset-path "$TAAC_DATASET_PATH" --run-dir "$TAAC_OUTPUT_DIR"
 ```
 

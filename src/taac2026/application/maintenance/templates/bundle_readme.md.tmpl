@@ -7,6 +7,8 @@
 - {{payload_archive_name}}：最小训练源码和指定实验包。
 - bundle_manifest.json：打包元数据。
 
+其中 {{payload_archive_name}} 解压后包含 `pyproject.toml`、`uv.lock` 和最小训练源码，用于执行锁定依赖安装。
+
 使用方式：
 1. 解压 zip，进入解压后的目录。
 2. 设置 {{dataset_env_var}} 指向线上数据目录或 parquet 文件。
