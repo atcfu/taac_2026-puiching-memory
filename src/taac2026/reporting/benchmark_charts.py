@@ -29,7 +29,7 @@ PHASE_NAME_PATTERN = re.compile(r"^phase-(\d+)$", re.IGNORECASE)
 
 
 def serialize_echarts(option: dict[str, Any]) -> str:
-    return json.dumps(option, indent=2, ensure_ascii=False)
+    return json.dumps(option, ensure_ascii=False, separators=(",", ":"))
 
 
 def _dedupe(values: Iterable[str]) -> list[str]:

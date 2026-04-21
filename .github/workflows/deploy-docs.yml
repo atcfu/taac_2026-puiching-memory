@@ -85,24 +85,6 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Restore EDA figures cache
-        id: cache-eda-figures
-        uses: actions/cache/restore@v5
-        with:
-          path: docs/assets/figures/eda
-          key: ${{ runner.os }}-docs-eda-${{ hashFiles('pyproject.toml', 'uv.lock', 'src/taac2026/application/reporting/eda_cli.py', 'src/taac2026/domain/metrics.py', 'src/taac2026/infrastructure/io/datasets.py', 'src/taac2026/reporting/dataset_eda.py') }}
-
-      - name: Restore tech timeline cache
-        id: cache-tech-timeline
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            .cache/taac2026
-            docs/assets/figures/papers/tech-timeline.echarts.json
-          key: ${{ runner.os }}-docs-tech-timeline-${{ hashFiles('pyproject.toml', 'uv.lock', 'src/taac2026/application/reporting/timeline_cli.py', 'src/taac2026/reporting/tech_timeline.py') }}
-          restore-keys: |
-            ${{ runner.os }}-docs-tech-timeline-
-
       - name: Restore benchmark charts cache
         id: cache-benchmark-charts
         uses: actions/cache/restore@v5
@@ -130,46 +112,9 @@ jobs:
           echo "cache_matched_key=$cache_matched_key" >> "$GITHUB_OUTPUT"
           echo "benchmark_charts_ready=$benchmark_charts_ready" >> "$GITHUB_OUTPUT"
 
-      - name: Check if artifact generation is needed
-        id: generation-check
-        run: |
-          if [[ "${{ steps.cache-eda-figures.outputs.cache-hit }}" != "true" ]] || \
-             [[ "${{ steps.cache-tech-timeline.outputs.cache-hit }}" != "true" ]] || \
-             [[ "${{ steps.benchmark-cache-status.outputs.benchmark_charts_ready }}" != "true" ]]; then
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "needed=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Install project dependencies (lightweight)
-        if: steps.generation-check.outputs.needed == 'true'
+        if: steps.benchmark-cache-status.outputs.benchmark_charts_ready != 'true'
         run: uv sync --locked --no-install-package torch --no-install-package torchrec --no-install-package fbgemm-gpu
-
-      - name: Generate EDA figures
-        if: steps.cache-eda-figures.outputs.cache-hit != 'true'
-        run: uv run taac-dataset-eda
-
-      - name: Save EDA figures cache
-        if: steps.cache-eda-figures.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: docs/assets/figures/eda
-          key: ${{ steps.cache-eda-figures.outputs.cache-primary-key }}
-
-      - name: Generate tech timeline
-        if: steps.cache-tech-timeline.outputs.cache-hit != 'true'
-        env:
-          SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
-        run: uv run taac-tech-timeline
-
-      - name: Save tech timeline cache
-        if: steps.cache-tech-timeline.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            .cache/taac2026
-            docs/assets/figures/papers/tech-timeline.echarts.json
-          key: ${{ steps.cache-tech-timeline.outputs.cache-primary-key }}
 
       - name: Generate benchmark charts
         if: steps.benchmark-cache-status.outputs.benchmark_charts_ready != 'true'
@@ -182,39 +127,74 @@ jobs:
           path: docs/assets/figures/benchmarks
           key: ${{ runner.os }}-docs-bench-${{ github.event.workflow_run.head_sha || github.sha }}
 
+      - name: Validate committed docs chart assets
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          docs_root = Path("docs")
+          pattern = re.compile(r'data-src="([^"]+)"')
+          references: list[tuple[Path, str]] = []
+          missing: list[tuple[Path, str]] = []
+
+          for doc_path in sorted(docs_root.rglob("*.md")):
+            content = doc_path.read_text(encoding="utf-8")
+            for rel_path in pattern.findall(content):
+              if not rel_path.startswith("assets/"):
+                continue
+              references.append((doc_path, rel_path))
+              asset_path = docs_root / rel_path
+              if not asset_path.is_file():
+                missing.append((doc_path, rel_path))
+
+          eda_dir = docs_root / "assets/figures/eda"
+          eda_files = sorted(eda_dir.glob("*.echarts.json"))
+          timeline_file = docs_root / "assets/figures/papers/tech-timeline.echarts.json"
+
+          if not eda_files:
+            raise SystemExit("Missing committed EDA chart assets under docs/assets/figures/eda")
+          if not timeline_file.is_file():
+            raise SystemExit("Missing committed tech timeline chart asset")
+          if missing:
+            details = "\n".join(f"{doc_path}: missing {rel_path}" for doc_path, rel_path in missing)
+            raise SystemExit(f"Missing docs chart assets:\n{details}")
+
+          print(f"Validated {len(references)} chart references.")
+          print(f"EDA files present: {len(eda_files)}")
+          print(f"Tech timeline present: {timeline_file.is_file()}")
+          PY
+
       - name: Build Zensical site
         run: uv run --no-project --isolated --with zensical zensical build --clean
 
       - name: Summarize docs deploy trace
         env:
-          CACHE_EDA_HIT: ${{ steps.cache-eda-figures.outputs.cache-hit }}
-          CACHE_TIMELINE_HIT: ${{ steps.cache-tech-timeline.outputs.cache-hit }}
           CACHE_BENCH_HIT: ${{ steps.benchmark-cache-status.outputs.cache_hit }}
           CACHE_BENCH_MATCHED_KEY: ${{ steps.benchmark-cache-status.outputs.cache_matched_key }}
           CACHE_BENCH_READY: ${{ steps.benchmark-cache-status.outputs.benchmark_charts_ready }}
-          GENERATION_NEEDED: ${{ steps.generation-check.outputs.needed }}
         run: |
-          uv run python - <<'PY'
+          python - <<'PY'
           import json
           import os
           from pathlib import Path
 
+          docs_dir = Path("docs")
           site_dir = Path("site")
+          eda_dir = docs_dir / "assets/figures/eda"
+          timeline_file = docs_dir / "assets/figures/papers/tech-timeline.echarts.json"
+          cache_bench_hit = os.environ["CACHE_BENCH_HIT"] == "true"
+          cache_bench_ready = os.environ["CACHE_BENCH_READY"] == "true"
           trace = {
-              "generation_needed": os.environ["GENERATION_NEEDED"] == "true",
-              "cache_hits": {
-                  "eda": os.environ["CACHE_EDA_HIT"] == "true",
-                  "tech_timeline": os.environ["CACHE_TIMELINE_HIT"] == "true",
-                  "benchmark_charts": os.environ["CACHE_BENCH_HIT"] == "true",
+            "committed_assets": {
+              "eda_file_count": len(list(eda_dir.glob("*.echarts.json"))),
+              "tech_timeline": timeline_file.is_file(),
               },
-              "cache_fallbacks": {
-                  "benchmark_charts": os.environ["CACHE_BENCH_READY"] == "true"
-                  and os.environ["CACHE_BENCH_HIT"] != "true",
-              },
-              "generated_outputs": {
-                  "eda": os.environ["CACHE_EDA_HIT"] != "true",
-                  "tech_timeline": os.environ["CACHE_TIMELINE_HIT"] != "true",
-                  "benchmark_charts": os.environ["CACHE_BENCH_READY"] != "true",
+            "benchmark_charts": {
+              "cache_hit": cache_bench_hit,
+              "cache_matched_key": os.environ["CACHE_BENCH_MATCHED_KEY"],
+              "cache_fallback": cache_bench_ready and not cache_bench_hit,
+              "generated": not cache_bench_ready,
               },
               "site_file_count": sum(1 for path in site_dir.rglob("*") if path.is_file()),
               "site_exists": site_dir.exists(),
@@ -223,21 +203,16 @@ jobs:
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
               handle.write("## Docs deploy trace\n\n")
-              handle.write(f"- generation needed: {trace['generation_needed']}\\n")
               handle.write(
-                  "- cache hits: "
-                  f"eda={trace['cache_hits']['eda']}, "
-                  f"tech_timeline={trace['cache_hits']['tech_timeline']}, "
-                  f"benchmark_charts={trace['cache_hits']['benchmark_charts']}\\n"
+              "- committed assets: "
+              f"eda_files={trace['committed_assets']['eda_file_count']}, "
+              f"tech_timeline={trace['committed_assets']['tech_timeline']}\\n"
               )
               handle.write(
-                  f"- benchmark fallback cache reused: {trace['cache_fallbacks']['benchmark_charts']}\\n"
-              )
-              handle.write(
-                  "- generated this run: "
-                  f"eda={trace['generated_outputs']['eda']}, "
-                  f"tech_timeline={trace['generated_outputs']['tech_timeline']}, "
-                  f"benchmark_charts={trace['generated_outputs']['benchmark_charts']}\\n"
+              "- benchmark charts: "
+              f"cache_hit={trace['benchmark_charts']['cache_hit']}, "
+              f"fallback_cache={trace['benchmark_charts']['cache_fallback']}, "
+              f"generated={trace['benchmark_charts']['generated']}\\n"
               )
               handle.write(f"- built site files: {trace['site_file_count']}\\n")
           PY

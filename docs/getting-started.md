@@ -20,11 +20,15 @@ icon: lucide/rocket
 # 克隆仓库并同步依赖
 git clone https://github.com/Puiching-Memory/TAAC_2026.git
 cd TAAC_2026
+git lfs install
+git lfs pull
 
 # 安装并固定 Python 3.13
 uv python install 3.13
 uv sync --locked
 ```
+
+文档站提交的 EDA 与技术时间线图表 JSON 由 Git LFS 管理；如果你看到 `docs/assets/figures/**/*.echarts.json` 只有 pointer 文本，先重新执行 `git lfs pull`。
 
 !!! warning "关于 PyPI 镜像"
     仓库在 `pyproject.toml` 里固定了 canonical PyPI 作为默认索引，以保证 `uv.lock` 在本机和 CI 间一致。不要额外传 `--default-index` 或 `--index-url` 指向国内镜像，否则 `uv` 会判定 `uv.lock` 需要更新。  
@@ -198,7 +202,7 @@ uv run python scripts/run_gpu_tests.py
 
 ## 本地文档站
 
-文档构建前需要先生成 gitignored 图表产物：
+文档构建前需要先刷新 EDA 与技术时间线图表，并把生成的 JSON 一起提交到仓库：
 
 ```bash
 uv sync --locked --no-install-package torch --no-install-package torchrec --no-install-package fbgemm-gpu --no-install-package triton

@@ -1,6 +1,6 @@
 ---
 name: taac-docs-workflow
-description: Enforce the docs build pipeline for this TAAC 2026 codebase. Use when any agent edits files under src/taac2026/reporting/, docs/analysis/, docs/assets/, the EDA CLI, ECharts generators, or any code that produces gitignored artifacts consumed by the documentation site. Ensures generated assets are regenerated and the site is rebuilt before previewing.
+description: Enforce the docs build pipeline for this TAAC 2026 codebase. Use when any agent edits files under src/taac2026/reporting/, docs/analysis/, docs/assets/, the EDA CLI, ECharts generators, or any code that produces documentation assets consumed by the documentation site. Ensures generated assets are regenerated, committed when required, and the site is rebuilt before previewing.
 ---
 
 # Taac Docs Workflow
@@ -8,8 +8,8 @@ description: Enforce the docs build pipeline for this TAAC 2026 codebase. Use wh
 ## Overview
 
 Use this skill whenever a change touches the documentation pipeline — EDA analysis code, ECharts chart generators, reporting CLIs, doc Markdown pages, or JS/CSS assets.
-The docs site depends on **generated artifacts that are not committed to version control**.
-Forgetting to regenerate them after code changes causes broken charts, missing pages, or silent 404s that serve HTML instead of JSON.
+The docs site depends on a mix of committed chart JSON and CI-regenerated benchmark assets.
+Forgetting to regenerate the local chart JSON after code changes causes broken charts, missing pages, or silent 404s that serve HTML instead of JSON.
 
 ## The Pipeline
 
@@ -21,8 +21,7 @@ The documentation build has three mandatory stages that must run **in order**:
 
 ### Stage 1 — Generate artifacts
 
-ECharts JSON files under `docs/assets/figures/eda/` are **gitignored**.
-They are produced by the EDA CLI and must be regenerated whenever:
+ECharts JSON files under `docs/assets/figures/eda/` are produced by the EDA CLI and must be regenerated locally whenever:
 
 - Any function in `src/taac2026/reporting/dataset_eda.py` is added or changed
 - The EDA CLI (`src/taac2026/application/reporting/eda_cli.py`) is modified
@@ -35,7 +34,15 @@ Command:
 uv run taac-dataset-eda
 ```
 
-This writes all `*.echarts.json` files to `docs/assets/figures/eda/`.
+This writes all `*.echarts.json` files to `docs/assets/figures/eda/`, and those files must be committed with the code change.
+
+The technology timeline chart follows the same rule:
+
+```bash
+uv run taac-tech-timeline
+```
+
+Commit `docs/assets/figures/papers/tech-timeline.echarts.json` after regenerating it.
 
 ### Stage 2 — Build site
 
@@ -69,10 +76,12 @@ When you edit any of these files, you **must** run `uv run taac-dataset-eda` bef
 | `src/taac2026/application/reporting/eda_cli.py` | Which charts get written and their filenames |
 | `src/taac2026/domain/metrics.py` | Metric computations used in EDA charts |
 | `docs/analysis/dataset-eda.md` | May reference new `data-src` chart files |
+| `src/taac2026/application/reporting/timeline_cli.py` | Refreshes the committed tech timeline JSON |
+| `src/taac2026/reporting/tech_timeline.py` | Changes the committed tech timeline JSON |
 
 ### Always rebuild site after generating artifacts
 
-After `uv run taac-dataset-eda`, run `zensical build --clean` so the fresh JSON files are copied into `site/`.
+After `uv run taac-dataset-eda` and/or `uv run taac-tech-timeline`, commit the refreshed JSON files, then run `zensical build --clean` so the fresh assets are copied into `site/`.
 
 ### Verify chart file existence
 
@@ -99,8 +108,9 @@ When adding a new ECharts chart:
 3. Add `<div class="echarts" data-src="assets/figures/eda/my_chart.echarts.json"></div>` in the Markdown page
 4. Add a smoke test in `tests/test_dataset_eda.py`
 5. Run `uv run taac-dataset-eda` to generate the JSON
-6. Run `zensical build --clean` to include it in the site
-7. Verify in browser that the chart renders without errors
+6. Commit the updated `docs/assets/figures/eda/*.echarts.json`
+7. Run `zensical build --clean` to include it in the site
+8. Verify in browser that the chart renders without errors
 
 ### Common failure mode
 
@@ -111,12 +121,18 @@ This means the `.echarts.json` file does not exist in `site/assets/figures/eda/`
 
 **Fix**: Run Stage 1 + Stage 2 (generate + rebuild).
 
-## Gitignored artifacts
+## Committed chart artifacts
 
-These paths are gitignored and must be regenerated, never committed:
+These paths are regenerated locally and must be committed when refreshed:
 
 ```
 docs/assets/figures/eda/*.echarts.json
+docs/assets/figures/papers/tech-timeline.echarts.json
+```
+
+These paths remain ephemeral and should not be committed:
+
+```
 site/
 ```
 

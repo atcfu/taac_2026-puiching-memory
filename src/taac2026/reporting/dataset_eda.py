@@ -1357,4 +1357,4 @@ def echarts_co_missing(missing_patterns: MissingPatternStats, *, top_n: int = 10
 
 def serialize_echarts(option: dict[str, Any]) -> str:
     """Serialize ECharts option dict to JSON string."""
-    return json.dumps(option, indent=2, ensure_ascii=False)
+    return json.dumps(option, ensure_ascii=False, separators=(",", ":"))

@@ -699,9 +699,9 @@ def to_echarts(graph: TimelineGraph) -> dict[str, Any]:
 
 
 def write_echarts_json(option: dict[str, Any], path: Path) -> None:
-    """Write *option* as pretty-printed JSON."""
+    """Write *option* as compact JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(option, ensure_ascii=False, indent=2),
+        json.dumps(option, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )

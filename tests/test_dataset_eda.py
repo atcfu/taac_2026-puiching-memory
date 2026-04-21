@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from tests.support import build_row
 
 from taac2026.reporting.dataset_eda import (
@@ -139,7 +141,7 @@ class TestECharts:
         opt = echarts_label_distribution(dist)
         assert "series" in opt
         j = serialize_echarts(opt)
-        assert '"type": "pie"' in j
+        assert json.loads(j)["series"][0]["type"] == "pie"
 
     def test_echarts_cardinality(self) -> None:
         rows = _sample_rows()
@@ -168,7 +170,7 @@ class TestECharts:
         opt = echarts_ndcg_decay()
         assert "series" in opt
         j = serialize_echarts(opt)
-        assert '"type": "line"' in j
+        assert json.loads(j)["series"][0]["type"] == "line"
 
     def test_echarts_cross_edition_default(self) -> None:
         opt = echarts_cross_edition()
@@ -188,7 +190,7 @@ class TestECharts:
         opt = echarts_column_layout(groups)
         assert "series" in opt
         j = serialize_echarts(opt)
-        assert '"type": "pie"' in j
+        assert json.loads(j)["series"][0]["type"] == "pie"
 
     def test_echarts_null_rates(self) -> None:
         stats = compute_column_stats(iter(_sample_rows()))

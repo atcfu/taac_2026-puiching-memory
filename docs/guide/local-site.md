@@ -10,10 +10,11 @@ icon: lucide/hard-drive-download
 
 - Python ≥ 3.12
 - [uv](https://docs.astral.sh/uv/) 已安装
+- 已执行 `git lfs pull`，确保提交到仓库的图表 JSON 不是 LFS pointer 文本
 
 ## 构建静态站点
 
-部分图表数据不纳入版本控制，构建前需先生成：
+EDA 与技术时间线图表 JSON 需要在本地生成后随代码一起提交；benchmark 图表仍可按需本地重建。构建前建议按下面顺序执行：
 
 ```bash
 uv sync --locked --no-install-package torch --no-install-package torchrec --no-install-package fbgemm-gpu --no-install-package triton
@@ -25,7 +26,12 @@ uv run --no-project --isolated --with zensical zensical build --clean
 
 如果你本地已经安装了完整训练环境，也可以继续直接使用 `uv sync --locked`。
 
-其中 `uv run taac-tech-timeline` 会在仓库根目录下写入本地缓存 `.cache/taac2026/.s2_cache.json`，该文件仅用于加速 Semantic Scholar 元数据抓取，不需要提交到 Git。
+其中 `uv run taac-tech-timeline` 会在仓库根目录下写入本地缓存 `.cache/taac2026/.s2_cache.json`，该文件仅用于加速 Semantic Scholar 元数据抓取，不需要提交到 Git；需要提交的是 `docs/assets/figures/papers/tech-timeline.echarts.json` 本身。
+
+如果你改了 EDA 或 timeline 相关代码，重新生成后请一并提交以下产物：
+
+- `docs/assets/figures/eda/*.echarts.json`
+- `docs/assets/figures/papers/tech-timeline.echarts.json`
 
 构建产物输出到 `site/` 目录。`--clean` 会在构建前清除旧的产物。
 

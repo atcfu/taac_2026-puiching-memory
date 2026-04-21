@@ -5,7 +5,7 @@ icon: lucide/bar-chart-3
 # 数据集 EDA 报告
 
 > 本报告由 `uv run taac-dataset-eda` 自动生成的 ECharts JSON 驱动。
-> 如需更新，重新运行 CLI 即可刷新 `docs/assets/figures/eda/` 下的图表数据。
+> 如需更新，请在本地重新运行 CLI，并把 `docs/assets/figures/eda/` 下刷新后的图表数据一并提交。
 
 ---
 

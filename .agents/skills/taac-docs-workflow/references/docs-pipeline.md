@@ -2,11 +2,12 @@
 
 ## Generated Asset Inventory
 
-| Source | Generator Command | Output Path | Gitignored |
-|--------|------------------|-------------|------------|
-| EDA ECharts JSON | `uv run taac-dataset-eda` | `docs/assets/figures/eda/*.echarts.json` | Yes |
-| Model performance plots | `uv run taac-plot-model-performance` | `figures/*.png`, `figures/*.svg` | No |
-| Static site | `uv run --no-project --isolated --with zensical zensical build --clean` | `site/` | Yes |
+| Source                     | Generator Command                                                       | Output Path                                             | Committed |
+| -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------- | --------- |
+| EDA ECharts JSON           | `uv run taac-dataset-eda`                                               | `docs/assets/figures/eda/*.echarts.json`                | Yes       |
+| Tech timeline ECharts JSON | `uv run taac-tech-timeline`                                             | `docs/assets/figures/papers/tech-timeline.echarts.json` | Yes       |
+| Model performance plots    | `uv run taac-plot-model-performance`                                    | `figures/*.png`, `figures/*.svg`                        | Yes       |
+| Static site                | `uv run --no-project --isolated --with zensical zensical build --clean` | `site/`                                                 | No        |
 
 ## Current ECharts Chart Files (18 total)
 
@@ -36,11 +37,10 @@
 
 ## CI Integration
 
-The GitHub Actions deploy-docs workflow runs both stages:
+The GitHub Actions deploy-docs workflow expects committed EDA and tech-timeline JSON assets, validates that all Markdown `data-src` references resolve to real files with an inline Python step, and only regenerates benchmark charts when cache restoration misses before running:
 
 ```yaml
-- run: uv run taac-dataset-eda          # Stage 1: generate
-- run: uv run --no-project --isolated --with zensical zensical build --clean  # Stage 2: build
+- run: uv run --no-project --isolated --with zensical zensical build --clean
 ```
 
 See `.github/workflows/deploy-docs.yml` for the full pipeline.

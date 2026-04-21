@@ -6,7 +6,7 @@ icon: lucide/chart-column
 
 本分区提供 TAAC 2026 数据集的自动化探索性分析，以及从上届竞赛论文中提炼的数据层面经验。
 
-所有统计数据和图表均由 `taac-dataset-eda` CLI 工具自动生成，可随时重跑刷新：
+所有统计数据和图表均由 `taac-dataset-eda` CLI 工具自动生成；如需刷新文档站展示，请在本地重跑后把 `docs/assets/figures/eda/` 下的 JSON 一并提交：
 
 ```bash
 uv run taac-dataset-eda                            # 默认 sample 数据集
