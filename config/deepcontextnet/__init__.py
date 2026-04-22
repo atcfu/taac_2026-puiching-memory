@@ -9,15 +9,13 @@ from taac2026.domain.features import build_default_feature_schema
 from .model import build_model_component
 
 
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATASET = ROOT / "data" / "datasets--TAAC2026--data_sample_1000"
-DEFAULT_OUTPUT_DIR = ROOT / "outputs" / "config" / "deepcontextnet"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "config" / "deepcontextnet"
 
 
 EXPERIMENT = ExperimentSpec(
     name="deepcontextnet",
     data=DataConfig(
-        dataset_path=str(DEFAULT_DATASET),
         max_seq_len=32,
         max_feature_tokens=16,
         max_event_features=4,
