@@ -276,10 +276,7 @@ def test_experiment_package_directory_path_loads_namespace_relative_imports(expe
 )
 def test_experiment_package_default_dataset_points_to_hf_cache_root(module_path: str) -> None:
     experiment = importlib.import_module(module_path).EXPERIMENT
-    dataset_path = Path(experiment.data.dataset_path)
-
-    assert dataset_path.name == "datasets--TAAC2026--data_sample_1000"
-    assert "snapshots" not in dataset_path.parts
+    assert experiment.data.dataset_path == "TAAC2026/data_sample_1000"
 
 
 def test_resolve_parquet_dataset_path_prefers_hf_main_ref(tmp_path: Path) -> None:
