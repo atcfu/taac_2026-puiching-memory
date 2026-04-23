@@ -7,7 +7,8 @@ Read these files before making structural decisions:
 - `docs/getting-started.md`
 - `docs/architecture.md`
 - `docs/experiments/index.md`
-- `tests/test_experiment_packages.py`
+- `docs/guide/contributing.md`
+- `tests/integration/test_experiment_packages.py`
 - `tests/support.py` when adding or expanding training-stack tests
 - the closest existing package under `config`
 
@@ -19,9 +20,7 @@ Do not mix unrelated migrations into a package-onboarding task unless the user a
 Add or update these files:
 
 - `config/<name>/__init__.py`
-- `config/<name>/data.py`
 - `config/<name>/model.py`
-- `config/<name>/utils.py`
 - `docs/experiments/<name>.md`
 
 Usually update these files too:
@@ -30,10 +29,12 @@ Usually update these files too:
 - `README.md`
 - `docs/index.md`
 - `zensical.toml`
-- `tests/test_experiment_packages.py`
+- `tests/integration/test_experiment_packages.py`
 
 Conditionally update these files:
 
+- `config/<name>/data.py` only when the default data pipeline is not enough
+- `config/<name>/utils.py` only when the default loss or optimizer builders are not enough
 - `docs/papers/<name>.md` when a long-form paper digest is worth maintaining
 - `docs/papers/index.md` when a new paper page is added
 - shared modules in `src/taac2026` only for truly reusable framework logic
@@ -42,8 +43,10 @@ Conditionally update these files:
 Keep these rules:
 
 - Export `EXPERIMENT` from `config/<name>/__init__.py`.
+- Prefer the minimal package shape: package-local `model.py` plus framework default data / loss / optimizer builders unless the experiment really needs overrides.
 - Keep package-private modeling and data glue inside `config/<name>`.
 - Prefer adapting the architecture to the local batch/runtime contract over preserving upstream file layout.
+- Put any new tests under the staged test directories such as `tests/unit/` or `tests/integration/`, not under `tests/` root.
 - Record only validation evidence that can be opened in the current workspace.
 
 ## Concept-Only Path
@@ -67,7 +70,8 @@ Avoid these changes for concept-only work:
 
 Prefer the smallest set of checks that proves the claimed state:
 
-- Executable package scaffold only: targeted import and forward test
+- Executable package scaffold or contract change: `uv run pytest tests/integration/test_experiment_packages.py -q`
+- Model robustness change: `uv run pytest tests/integration/test_model_robustness.py -q`
 - Shared runtime change: `uv run pytest tests -q`
 - Docs or nav change: `uv run --no-project --isolated --with zensical zensical build --clean`
 - Smoke training claim: `uv run taac-train --experiment config/<name>`

@@ -18,7 +18,8 @@ Open the current repository contract before editing:
 
 - `docs/getting-started.md`
 - `docs/architecture.md`
-- `tests/test_experiment_packages.py`
+- `docs/guide/contributing.md`
+- `tests/integration/test_experiment_packages.py`
 - one nearby experiment package under `config`
 - any touched runtime contract file such as `src/taac2026/domain/experiment.py`, `src/taac2026/infrastructure/experiments/loader.py`, or `src/taac2026/application/search/service.py`
 
@@ -36,14 +37,18 @@ If the source material is incomplete, tightly coupled to unavailable infra, or t
 
 ### Implement the package contract
 
-For an executable package, create or update:
+For an executable package, always create or update:
 
 - `config/<name>/__init__.py`
-- `config/<name>/data.py`
 - `config/<name>/model.py`
+
+Only add these files when the package truly needs to override the framework defaults:
+
+- `config/<name>/data.py`
 - `config/<name>/utils.py`
 
 Export `EXPERIMENT` from `__init__.py`.
+Prefer the minimal package shape: `build_model_component` lives in the package, while `build_data_pipeline=None`, `build_loss_stack=None`, and `build_optimizer_component=None` should keep using the shared defaults unless the experiment has a real reason to override them.
 Keep experiment-private data/model/loss wiring inside the package.
 Move reusable framework logic into `src/taac2026` only when it is genuinely shared by multiple packages or CLI/test code.
 Do not copy an upstream repository layout verbatim if it fights the local contract.
@@ -64,7 +69,8 @@ Never document capabilities, results, or validation states that do not exist in 
 Run the smallest useful checks first, then the full regression when feasible:
 
 - targeted package build / forward test
-- `uv run pytest tests -q`
+- `uv run pytest tests/integration/test_experiment_packages.py -q`
+- `uv run pytest tests -q` when the change touches shared runtime behavior beyond a single package
 - `uv run taac-train --experiment config/<name>` for smoke training when feasible
 - `uv run taac-evaluate single --experiment config/<name>` when a checkpoint exists
 - `uv run taac-search --experiment config/<name> --trials <n>` only when search support matters for the task
