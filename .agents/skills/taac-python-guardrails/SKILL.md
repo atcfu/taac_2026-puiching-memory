@@ -1,13 +1,13 @@
 ---
 name: taac-python-guardrails
-description: Enforce repository-specific Python workflow rules for this TAAC 2026 codebase. Use when Codex edits Python modules, dependency declarations, docs with runnable commands, shell snippets, or tooling guidance and must avoid try-import dependency fallbacks while standardizing all environment and command usage around uv and uv run.
+description: Enforce repository-specific Python workflow rules for this TAAC 2026 codebase. Use when Codex edits Python modules, dependency declarations, docs with runnable commands, shell snippets, or tooling guidance and must avoid try-import dependency fallbacks while standardizing all environment and command usage around uv, uv run, and explicit uv sync profiles.
 ---
 
 # Taac Python Guardrails
 
 ## Overview
 
-Use this skill to keep Python changes aligned with two repository rules: do not write `try import` fallback patterns, and use `uv` plus `uv run` for dependency and command management.
+Use this skill to keep Python changes aligned with two repository rules: do not write `try import` fallback patterns, and use `uv` plus `uv run` with explicit dependency profiles for environment and command management.
 Apply it to code changes, docs, scripts, review comments, and refactors that touch Python imports or execution instructions.
 
 ## Rules
@@ -31,19 +31,26 @@ Using `importlib` to load experiment packages by path or module name is differen
 
 Use:
 
-- `uv sync --locked` to materialize the project environment
+- `uv sync --locked --extra cpu` for docs, unit tests, and CPU benchmark paths
+- `uv sync --locked --extra cuda126|cuda128|cuda130` for training, integration tests, GPU tests, and GPU benchmarks
+- `uv sync --locked --extra <cuda-profile> --extra te --no-build-isolation-package transformer-engine-torch` when Transformer Engine support is required
 - `uv run ...` for project commands
-- `uv run --with package ...` for one-off tools that should not become permanent project dependencies
+- `uv run --with <package> ...` for one-off tools that should not become permanent project dependencies
 - `uv add`, `uv remove`, and `uv lock` when dependency declarations need to change
+
+Choose exactly one runtime profile from the extras declared in `pyproject.toml`: `cpu`, `cuda126`, `cuda128`, or `cuda130`.
+If an instruction needs CUDA-linked packages, write the concrete profile explicitly instead of relying on auto-detection or wrapper scripts.
 
 Avoid:
 
+- bare `uv sync --locked`
 - `pip install ...`
 - `python -m venv ...`
 - bare `python script.py`
 - bare `pytest`, `zensical`, or similar commands in docs and review guidance
+- references to deleted repository wrappers such as `scripts/sync-env.sh`
 
-When writing docs, issue templates, or code review suggestions, normalize examples to `uv` commands even if other tools would work.
+When writing docs, issue templates, or code review suggestions, normalize examples to `uv` commands with explicit profiles even if other tools would work.
 
 ### Editing workflow
 
@@ -52,7 +59,7 @@ When touching Python code:
 1. Check whether the imported package is already declared in `pyproject.toml`.
 2. If not, update dependencies with the expectation that the environment will be managed by `uv`.
 3. Replace optional-import wrappers with direct imports or a cleaner module boundary.
-4. Update nearby docs and commands so they use `uv run`.
+4. Update nearby docs and commands so they use `uv run` and explicit `uv sync --locked --extra <profile>` examples.
 5. Call out any existing violations you did not fix.
 
 ### Review stance
@@ -61,7 +68,9 @@ During review, flag:
 
 - optional dependency fallbacks via `try import`
 - new commands that bypass `uv run`
+- new environment instructions that use bare `uv sync --locked` or omit the required profile
 - docs that tell users to use `pip` or bare Python executables
+- docs or scripts that reference removed sync helpers such as `scripts/sync-env.sh`
 - dependency additions that are not reflected in `pyproject.toml` and the lockfile
 
 If the user wants the rule to hold automatically, recommend pairing this skill with CI or lint checks.
