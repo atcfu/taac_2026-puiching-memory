@@ -215,6 +215,9 @@ print(df.columns)     # ['user_id', 'item_id', 'label_type', ...]
 4. [twx145/Unirec](https://github.com/twx145/Unirec) UniScaleFormer 模板，内置 InterFormer / OneTrans / HyFormer / base 配置对比与 scaling law 脚本。  
 5. [XiaolongWang-c/tencent-ad](https://github.com/XiaolongWang-c/tencent-ad) 轻量级 TAAC 2026 备赛工程脚手架，强调统一 Sample 抽象、显式标签映射入口与验证预测产物，便于快速替换 baseline 与特征工程。  
 
+**2026届：Kaggle / Notebook**  
+1. [galegale05/TAAC2026 Baseline v3 - Final](https://www.kaggle.com/code/galegale05/taac2026-baseline-v3-final/notebook) Kaggle 上公开的 HSTU 风格时间特征 baseline notebook，可作为时间 bucket、session 切分和轻量级序列建模的补充参考；更详细的接入评审见 [docs/ideas/posts/003-kaggle-taac2026-hstu-review.md](docs/ideas/posts/003-kaggle-taac2026-hstu-review.md)。  
+
 **2026届：EDA / 资料入口**  
 1. [hun9008/TAAC_DI_Lab_EDA](https://github.com/hun9008/TAAC_DI_Lab_EDA) 对公开 sample parquet 做了较完整的 EDA，包含 label 分布、序列长度、feature 密度和建模建议。  
 2. [https://huggingface.co/datasets/TAAC2026/data_sample_1000](https://huggingface.co/datasets/TAAC2026/data_sample_1000) 官方样例数据页面。  
