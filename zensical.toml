@@ -40,7 +40,9 @@ nav = [
         { "TAAC 2025 论文洞察" = "analysis/taac2025-insights.md" },
     ] },
     { "指南" = [
+        { "官方平台用户指南" = "guide/official-competition-docs.md" },
         { "线上训练打包" = "guide/online-training-bundle.md" },
+        { "比赛线上服务器设备信息" = "guide/competition-online-server.md" },
         { "超参数搜索" = "guide/search.md" },
         { "测试" = "guide/testing.md" },
         { "Triton Kernel 开发" = "guide/triton-kernels.md" },
