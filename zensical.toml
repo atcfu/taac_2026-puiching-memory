@@ -59,6 +59,7 @@ nav = [
         { "HyFormer" = "papers/hyformer.md" },
         { "InterFormer" = "papers/interformer.md" },
         { "OneTrans" = "papers/onetrans.md" },
+        { "TAAC 2025 全模态生成式推荐" = "papers/taac2025.md" },
     ] },
 ]
 
