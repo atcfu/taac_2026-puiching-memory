@@ -11,6 +11,8 @@ import sys
 import time
 from typing import Any
 
+import optuna
+
 from ...domain.experiment import ExperimentSpec
 from ...infrastructure.compute.device_scheduler import launchable_devices, query_gpu_devices
 from ...infrastructure.experiments.payload import serialize_experiment
@@ -20,19 +22,13 @@ from .space import build_default_search_experiment
 from .trial import execute_search_trial
 
 
-def _require_optuna():
-    try:
-        import optuna
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("optuna is required for taac-search; run uv sync --locked") from exc
-    return optuna
-
-
 @dataclass(slots=True)
 class SearchWorkerProcess:
     trial: Any
     process: subprocess.Popen[str]
     result_path: Path
+    stdout_path: Path
+    stderr_path: Path
     physical_gpu_index: int | None
 
 
@@ -116,6 +112,8 @@ def _launch_search_worker(
 ) -> SearchWorkerProcess:
     config_path = trial_dir / "worker_experiment.json"
     result_path = trial_dir / "worker_result.json"
+    stdout_path = trial_dir / "worker.stdout.log"
+    stderr_path = trial_dir / "worker.stderr.log"
     write_json(config_path, serialized_experiment)
 
     command = [
@@ -130,43 +128,75 @@ def _launch_search_worker(
         str(result_path),
     ]
     env = dict(os.environ)
+    env.setdefault("PYTHONUNBUFFERED", "1")
     if physical_gpu_index is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(physical_gpu_index)
         command.extend(["--device", "cuda:0"])
 
-    process = subprocess.Popen(
-        command,
-        cwd=str(Path.cwd()),
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    with stdout_path.open("w", encoding="utf-8") as stdout_handle, stderr_path.open(
+        "w",
+        encoding="utf-8",
+    ) as stderr_handle:
+        process = subprocess.Popen(
+            command,
+            cwd=str(Path.cwd()),
+            env=env,
+            stdout=stdout_handle,
+            stderr=stderr_handle,
+            text=True,
+        )
     return SearchWorkerProcess(
         trial=None,
         process=process,
         result_path=result_path,
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
         physical_gpu_index=physical_gpu_index,
     )
 
 
+def _read_worker_log_tail(path: Path, *, max_bytes: int = 32_768) -> str:
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as handle:
+            if size > max_bytes:
+                handle.seek(-max_bytes, os.SEEK_END)
+            payload = handle.read()
+    except OSError:
+        return ""
+    return payload.decode("utf-8", errors="replace").strip()
+
+
+def _worker_error_context(worker: SearchWorkerProcess, fallback: str) -> str:
+    return (
+        _read_worker_log_tail(worker.stderr_path)
+        or _read_worker_log_tail(worker.stdout_path)
+        or fallback
+    )
+
+
 def _collect_worker_result(worker: SearchWorkerProcess) -> dict[str, Any]:
-    stdout, stderr = worker.process.communicate()
     result: dict[str, Any] | None = None
     if worker.result_path.exists():
         try:
             with worker.result_path.open("r", encoding="utf-8") as handle:
                 result = json.load(handle)
         except (OSError, UnicodeDecodeError, JSONDecodeError) as exc:
-            message = stderr.strip() or stdout.strip() or str(exc)
+            message = _worker_error_context(worker, str(exc))
             return {"status": "fail", "trial_error": f"invalid worker result payload: {message}"}
 
     if result is None:
-        message = stderr.strip() or stdout.strip() or f"worker exited with code {worker.process.returncode}"
+        message = _worker_error_context(
+            worker,
+            f"worker exited with code {worker.process.returncode}",
+        )
         return {"status": "fail", "trial_error": message}
 
     if result.get("status") == "fail" and not result.get("trial_error"):
-        result["trial_error"] = stderr.strip() or stdout.strip() or f"worker exited with code {worker.process.returncode}"
+        result["trial_error"] = _worker_error_context(
+            worker,
+            f"worker exited with code {worker.process.returncode}",
+        )
     return result
 
 
@@ -232,7 +262,6 @@ def _run_search_sequential(
     show_progress: bool,
     scheduler_info: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    optuna = _require_optuna()
     build_search_experiment = experiment.build_search_experiment or build_default_search_experiment
 
     def objective(trial) -> float:
@@ -299,7 +328,6 @@ def _run_search_auto(
     poll_interval_seconds: float,
     scheduler_info: dict[str, Any],
 ) -> dict[str, Any]:
-    optuna = _require_optuna()
     build_search_experiment = experiment.build_search_experiment or build_default_search_experiment
     min_free_memory_mb = int(min_free_memory_gb * 1024.0)
     launched_trials = 0
@@ -362,6 +390,8 @@ def _run_search_auto(
                         physical_gpu_index=device.index,
                     )
                     worker.trial = trial
+                    trial.set_user_attr("worker_stdout_path", str(worker.stdout_path))
+                    trial.set_user_attr("worker_stderr_path", str(worker.stderr_path))
                     active_workers[trial.number] = worker
 
             finished_trial_numbers: list[int] = []
@@ -421,7 +451,6 @@ def run_search(
     if poll_interval_seconds <= 0.0:
         raise ValueError("poll_interval_seconds must be positive")
 
-    optuna = _require_optuna()
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
     study_root = ensure_dir(study_dir or _default_study_dir(experiment))

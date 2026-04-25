@@ -137,8 +137,15 @@ def _call_availability_probe(te_module: Any, attribute_name: str, *, missing_rea
 
 
 def detect_transformer_engine_availability(device: torch.device | int | None = None) -> dict[str, object]:
+    resolved_device = _resolve_cuda_device(device)
+    cuda_available = torch.cuda.is_available()
+    compute_capability = None
+    if resolved_device.type == "cuda" and cuda_available:
+        compute_capability = list(torch.cuda.get_device_capability(resolved_device))
+
     report: dict[str, object] = {
         "installed": is_transformer_engine_installed(),
+        "compute_capability": compute_capability,
     }
     if not report["installed"]:
         return report
@@ -147,8 +154,7 @@ def detect_transformer_engine_availability(device: torch.device | int | None = N
     te_root = _load_transformer_engine_root()
     report["version"] = getattr(te_root, "__version__", "unknown")
 
-    resolved_device = _resolve_cuda_device(device)
-    if resolved_device.type != "cuda" or not torch.cuda.is_available():
+    if resolved_device.type != "cuda" or not cuda_available:
         unavailable_reason = "CUDA device not available"
         report.update(
             {
@@ -163,7 +169,6 @@ def detect_transformer_engine_availability(device: torch.device | int | None = N
         )
         return report
 
-    report["compute_capability"] = list(torch.cuda.get_device_capability(resolved_device))
     get_cudnn_version = getattr(te_module, "get_cudnn_version", None)
     report["cudnn_version"] = list(get_cudnn_version()) if get_cudnn_version is not None else None
     report["bf16"] = _call_availability_probe(

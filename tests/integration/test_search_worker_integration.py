@@ -21,7 +21,7 @@ class _CompletedProcess:
         return self.returncode
 
     def communicate(self) -> tuple[str, str]:
-        return self._stdout, self._stderr
+        raise AssertionError("_collect_worker_result should read worker log files instead of process pipes")
 
 
 @pytest.fixture
@@ -49,7 +49,11 @@ def test_run_search_auto_converges_complete_and_failed_workers(
 
     def fake_launch_worker(experiment_path, serialized_experiment, trial_dir, physical_gpu_index):
         result_path = trial_dir / "worker_result.json"
+        stdout_path = trial_dir / "worker.stdout.log"
+        stderr_path = trial_dir / "worker.stderr.log"
         summary_path = trial_dir / "summary.json"
+        stdout_path.write_text("", encoding="utf-8")
+        stderr_path.write_text("", encoding="utf-8")
         if trial_dir.name.endswith("0000"):
             summary_path.write_text(json.dumps({"best_val_auc": 0.81}), encoding="utf-8")
             result_path.write_text(
@@ -66,6 +70,7 @@ def test_run_search_auto_converges_complete_and_failed_workers(
             )
             process = _CompletedProcess(returncode=0)
         else:
+            stderr_path.write_text("worker exited unexpectedly", encoding="utf-8")
             result_path.write_text(
                 json.dumps(
                     {
@@ -81,6 +86,8 @@ def test_run_search_auto_converges_complete_and_failed_workers(
             trial=None,
             process=process,
             result_path=result_path,
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
             physical_gpu_index=physical_gpu_index,
         )
 
@@ -107,3 +114,5 @@ def test_run_search_auto_converges_complete_and_failed_workers(
     assert completed_trial["user_attrs"]["assigned_gpu_index"] == 3
     assert failed_trial["user_attrs"]["trial_error"] == "worker exited unexpectedly"
     assert failed_trial["user_attrs"]["assigned_gpu_index"] == 3
+    assert failed_trial["user_attrs"]["worker_stdout_path"].endswith("worker.stdout.log")
+    assert failed_trial["user_attrs"]["worker_stderr_path"].endswith("worker.stderr.log")

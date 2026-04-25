@@ -80,6 +80,7 @@ def test_pytest_config_collects_benchmark_modules_by_default() -> None:
     config = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
 
     assert config["tool"]["pytest"]["ini_options"]["python_files"] == ["test_*.py", "bench_*.py"]
+    assert "--import-mode=importlib" in config["tool"]["pytest"]["ini_options"]["addopts"]
     assert config["tool"]["pytest"]["ini_options"]["markers"][-2:] == [
         "benchmark_cpu: CPU-safe benchmark tests that run in automatic CI",
         "benchmark_gpu: GPU benchmark tests that run only via local CLI entry points",
