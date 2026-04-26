@@ -5,7 +5,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, NamedTuple, Tuple, Optional, Union
+from typing import NamedTuple
 
 
 class ModelInput(NamedTuple):
@@ -52,7 +52,7 @@ class RotaryEmbedding(nn.Module):
         self.register_buffer('cos_cached', emb.cos().unsqueeze(0), persistent=False)  # (1, seq_len, dim)
         self.register_buffer('sin_cached', emb.sin().unsqueeze(0), persistent=False)  # (1, seq_len, dim)
 
-    def forward(self, seq_len: int, device: torch.device) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, seq_len: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes cos/sin values for the given sequence length.
 
         Returns pre-computed slices from the cache. The cache is built once
@@ -152,12 +152,12 @@ class RoPEMultiheadAttention(nn.Module):
         query: torch.Tensor,
         key: torch.Tensor,
         value: torch.Tensor,
-        key_padding_mask: Optional[torch.Tensor] = None,
-        attn_mask: Optional[torch.Tensor] = None,
-        rope_cos: Optional[torch.Tensor] = None,
-        rope_sin: Optional[torch.Tensor] = None,
-        q_rope_cos: Optional[torch.Tensor] = None,
-        q_rope_sin: Optional[torch.Tensor] = None,
+        key_padding_mask: torch.Tensor | None = None,
+        attn_mask: torch.Tensor | None = None,
+        rope_cos: torch.Tensor | None = None,
+        rope_sin: torch.Tensor | None = None,
+        q_rope_cos: torch.Tensor | None = None,
+        q_rope_sin: torch.Tensor | None = None,
         need_weights: bool = False,
     ) -> tuple:
         """Computes multi-head attention with optional RoPE.
@@ -273,9 +273,9 @@ class CrossAttention(nn.Module):
         self,
         query: torch.Tensor,
         key_value: torch.Tensor,
-        key_padding_mask: Optional[torch.Tensor] = None,
-        rope_cos: Optional[torch.Tensor] = None,
-        rope_sin: Optional[torch.Tensor] = None,
+        key_padding_mask: torch.Tensor | None = None,
+        rope_cos: torch.Tensor | None = None,
+        rope_sin: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes cross-attention between query tokens and sequence tokens.
 
@@ -519,7 +519,7 @@ class SwiGLUEncoder(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        key_padding_mask: Optional[torch.Tensor] = None,
+        key_padding_mask: torch.Tensor | None = None,
         **kwargs
     ) -> torch.Tensor:
         """Applies the SwiGLU encoder with residual connection.
@@ -577,9 +577,9 @@ class TransformerEncoder(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        key_padding_mask: Optional[torch.Tensor] = None,
-        rope_cos: Optional[torch.Tensor] = None,
-        rope_sin: Optional[torch.Tensor] = None,
+        key_padding_mask: torch.Tensor | None = None,
+        rope_cos: torch.Tensor | None = None,
+        rope_sin: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Applies one Transformer encoder layer.
 
@@ -669,7 +669,7 @@ class LongerEncoder(nn.Module):
         self,
         x: torch.Tensor,
         key_padding_mask: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Selects the latest top_k valid tokens from each sample.
 
         Args:
@@ -721,10 +721,10 @@ class LongerEncoder(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        key_padding_mask: Optional[torch.Tensor] = None,
-        rope_cos: Optional[torch.Tensor] = None,
-        rope_sin: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        key_padding_mask: torch.Tensor | None = None,
+        rope_cos: torch.Tensor | None = None,
+        rope_sin: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Applies the LongerEncoder with adaptive cross/self attention.
 
         Args:
@@ -738,7 +738,7 @@ class LongerEncoder(nn.Module):
             output: (B, top_k, D), compressed sequence.
             new_key_padding_mask: (B, top_k), updated padding mask.
         """
-        B, L, D = x.shape
+        B, L, _ = x.shape
 
         if L > self.top_k:
             # === Cross Attention mode (first MultiSeqHyFormerBlock) ===
@@ -915,9 +915,9 @@ class MultiSeqHyFormerBlock(nn.Module):
         ns_tokens: torch.Tensor,
         seq_tokens_list: list,
         seq_padding_masks: list,
-        rope_cos_list: Optional[List[torch.Tensor]] = None,
-        rope_sin_list: Optional[List[torch.Tensor]] = None,
-    ) -> Tuple[list, torch.Tensor, list, list]:
+        rope_cos_list: list[torch.Tensor] | None = None,
+        rope_sin_list: list[torch.Tensor] | None = None,
+    ) -> tuple[list, torch.Tensor, list, list]:
         """Processes one multi-sequence HyFormer block step.
 
         Args:
@@ -964,7 +964,7 @@ class MultiSeqHyFormerBlock(nn.Module):
             decoded_qs.append(decoded_q_i)
 
         # 3. Token Fusion: concatenate all decoded_q + ns_tokens
-        combined = torch.cat(decoded_qs + [ns_tokens], dim=1)  # (B, Nq*S + Nns, D)
+        combined = torch.cat([*decoded_qs, ns_tokens], dim=1)  # (B, Nq*S + Nns, D)
 
         # 4. Query Boosting
         boosted = self.mixer(combined)  # (B, Nq*S + Nns, D)
@@ -972,7 +972,7 @@ class MultiSeqHyFormerBlock(nn.Module):
         # 5. Split back into per-sequence Q and NS
         next_q_list = []
         offset = 0
-        for i in range(S):
+        for _ in range(S):
             next_q_list.append(boosted[:, offset:offset + Nq, :])
             offset += Nq
         next_ns = boosted[:, offset:, :]
@@ -993,8 +993,8 @@ class GroupNSTokenizer(nn.Module):
     NS token (one token per group).
     """
 
-    def __init__(self, feature_specs: List[Tuple[int, int, int]],
-                 groups: List[List[int]], emb_dim: int, d_model: int,
+    def __init__(self, feature_specs: list[tuple[int, int, int]],
+                 groups: list[list[int]], emb_dim: int, d_model: int,
                  emb_skip_threshold: int = 0) -> None:
         super().__init__()
         self.feature_specs = feature_specs
@@ -1005,7 +1005,7 @@ class GroupNSTokenizer(nn.Module):
         # One embedding table per fid (None if skipped by emb_skip_threshold
         # or if vocab_size <= 0 / no vocab info).
         embs = []
-        for vs, offset, length in feature_specs:
+        for vs, _offset, _length in feature_specs:
             skip = int(vs) <= 0 or (emb_skip_threshold > 0 and int(vs) > emb_skip_threshold)
             if skip:
                 embs.append(None)
@@ -1041,10 +1041,10 @@ class GroupNSTokenizer(nn.Module):
             Tokens of shape (B, num_groups, D).
         """
         tokens = []
-        for group, proj in zip(self.groups, self.group_projs):
+        for group, proj in zip(self.groups, self.group_projs, strict=True):
             fid_embs = []
             for fid_idx in group:
-                vs, offset, length = self.feature_specs[fid_idx]
+                _vs, offset, length = self.feature_specs[fid_idx]
                 emb_real_idx = self._emb_index[fid_idx]
                 if emb_real_idx == -1:
                     # Filtered high-cardinality feature: output zero vector
@@ -1077,8 +1077,8 @@ class RankMixerNSTokenizer(nn.Module):
 
     def __init__(
         self,
-        feature_specs: List[Tuple[int, int, int]],
-        groups: List[List[int]],
+        feature_specs: list[tuple[int, int, int]],
+        groups: list[list[int]],
         emb_dim: int,
         d_model: int,
         num_ns_tokens: int,
@@ -1104,7 +1104,7 @@ class RankMixerNSTokenizer(nn.Module):
         # One embedding table per fid (None if skipped by emb_skip_threshold
         # or if vocab_size <= 0 / no vocab info).
         embs = []
-        for vs, offset, length in feature_specs:
+        for vs, _offset, _length in feature_specs:
             skip = int(vs) <= 0 or (emb_skip_threshold > 0 and int(vs) > emb_skip_threshold)
             if skip:
                 embs.append(None)
@@ -1158,7 +1158,7 @@ class RankMixerNSTokenizer(nn.Module):
         all_embs = []
         for group in self.groups:
             for fid_idx in group:
-                vs, offset, length = self.feature_specs[fid_idx]
+                _vs, offset, length = self.feature_specs[fid_idx]
                 emb_real_idx = self._emb_index[fid_idx]
                 if emb_real_idx == -1:
                     fid_emb = int_feats.new_zeros(int_feats.shape[0], self.emb_dim)
@@ -1183,7 +1183,7 @@ class RankMixerNSTokenizer(nn.Module):
         # 3. Split into num_ns_tokens chunks and project each
         chunks = cat_emb.split(self.chunk_dim, dim=-1)  # list of (B, chunk_dim)
         tokens = []
-        for chunk, proj in zip(chunks, self.token_projs):
+        for chunk, proj in zip(chunks, self.token_projs, strict=True):
             tokens.append(F.silu(proj(chunk)).unsqueeze(1))  # (B, 1, d_model)
 
         return torch.cat(tokens, dim=1)  # (B, num_ns_tokens, d_model)
@@ -1199,14 +1199,14 @@ class PCVRHyFormer(nn.Module):
     def __init__(
         self,
         # Data schema
-        user_int_feature_specs: List[Tuple[int, int, int]],
-        item_int_feature_specs: List[Tuple[int, int, int]],
+        user_int_feature_specs: list[tuple[int, int, int]],
+        item_int_feature_specs: list[tuple[int, int, int]],
         user_dense_dim: int,
         item_dense_dim: int,
-        seq_vocab_sizes: "dict[str, List[int]]",  # {domain: [vocab_size_per_fid, ...]}
+        seq_vocab_sizes: "dict[str, list[int]]",  # {domain: [vocab_size_per_fid, ...]}
         # NS grouping config (grouped by fid index)
-        user_ns_groups: List[List[int]],
-        item_ns_groups: List[List[int]],
+        user_ns_groups: list[list[int]],
+        item_ns_groups: list[list[int]],
         # Model hyperparameters
         d_model: int = 64,
         emb_dim: int = 64,
@@ -1507,7 +1507,7 @@ class PCVRHyFormer(nn.Module):
             (self.user_ns_tokenizer, self.user_ns_tokenizer.feature_specs),
             (self.item_ns_tokenizer, self.item_ns_tokenizer.feature_specs),
         ]:
-            for i, (vs, offset, length) in enumerate(specs):
+            for i, (vs, _offset, _length) in enumerate(specs):
                 real_idx = tokenizer._emb_index[i]
                 if real_idx == -1:
                     continue
@@ -1528,7 +1528,7 @@ class PCVRHyFormer(nn.Module):
                      f"(vocab>{cardinality_threshold}), kept {skip_count}")
         return reinit_ptrs
 
-    def get_sparse_params(self) -> List[nn.Parameter]:
+    def get_sparse_params(self) -> list[nn.Parameter]:
         """Returns all embedding table parameters (optimized with Adagrad)."""
         sparse_params = set()
         for module in self.modules():
@@ -1536,7 +1536,7 @@ class PCVRHyFormer(nn.Module):
                 sparse_params.add(module.weight.data_ptr())
         return [p for p in self.parameters() if p.data_ptr() in sparse_params]
 
-    def get_dense_params(self) -> List[nn.Parameter]:
+    def get_dense_params(self) -> list[nn.Parameter]:
         """Returns all non-embedding parameters (optimized with AdamW)."""
         sparse_ptrs = {p.data_ptr() for p in self.get_sparse_params()}
         return [p for p in self.parameters() if p.data_ptr() not in sparse_ptrs]
@@ -1546,8 +1546,8 @@ class PCVRHyFormer(nn.Module):
         seq: torch.Tensor,
         sideinfo_embs: nn.ModuleList,
         proj: nn.Module,
-        is_id: List[bool],
-        emb_index: List[int],
+        is_id: list[bool],
+        emb_index: list[int],
         time_bucket_ids: torch.Tensor,
     ) -> torch.Tensor:
         """Embeds a sequence domain by concatenating sideinfo embeddings and projecting to d_model."""
@@ -1674,7 +1674,7 @@ class PCVRHyFormer(nn.Module):
         logits = self.clsfier(output)  # (B, action_num)
         return logits
 
-    def predict(self, inputs: ModelInput) -> Tuple[torch.Tensor, torch.Tensor]:
+    def predict(self, inputs: ModelInput) -> tuple[torch.Tensor, torch.Tensor]:
         """Runs inference without dropout, returning both logits and embeddings."""
         # Reuses forward logic but without dropout
         user_ns = self.user_ns_tokenizer(inputs.user_int_feats)
