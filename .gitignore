@@ -10,6 +10,7 @@ __pycache__/
 site/
 .cache/
 .ruff_cache/
+.tmp/
 *.echarts.json
 .coverage.*
 !docs/assets/figures/eda/*.echarts.json
